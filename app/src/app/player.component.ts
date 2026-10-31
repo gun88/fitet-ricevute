@@ -19,7 +19,7 @@ import { TableView } from './table-preferences';
       <button class="secondary-button" (click)="reset()">Azzera filtri e ordine</button>
     </div>
     <div class="recap-totals player-totals"><div><span>Tornei nell’annata scelta</span><strong>{{ tournaments() }}</strong></div><div><span>Partecipazioni</span><strong>{{ rows().length }}</strong></div><div><span>Quote rimborsate</span><strong>{{ paid() }}</strong></div><div><span>Da rimborsare</span><strong>{{ rows().length - paid() }}</strong></div></div>
-    <ag-grid-angular id="player-grid" class="main-grid" [theme]="theme" [rowData]="rows()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="25" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" (gridReady)="api = $event.api" />
+    <ag-grid-angular id="player-grid" class="main-grid" [theme]="theme" [rowData]="rows()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" (gridReady)="api = $event.api" />
     <p class="grid-help">Ogni riga è una partecipazione a una gara. Le quote dei doppi sono per coppia e lo stato riguarda l’intera iscrizione. I contatori si riferiscono all’annata scelta; i filtri della griglia restringono le righe mostrate. Annata, filtri e ordinamento restano salvati nel browser.</p>
   }
 ` })

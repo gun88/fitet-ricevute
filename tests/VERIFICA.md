@@ -188,3 +188,13 @@ non sono state salvate nelle impostazioni di test, nel codice o negli archivi di
 I test ordinari usano credenziali fittizie. I metodi CLI `live-discovery.php` e `live-pdfs.php`
 richiedono esecuzione esplicita e non fanno parte della suite ordinaria.
 Il formato di una ricevuta reale con doppi rimane da verificare; i 20 PDF controllati contengono solo singolari.
+
+## Aggiornamento 0.6.2 — 31 ottobre 2026
+
+Modifiche nella nuova cartella D:/tpdev/fitet-ricevute-plugin/wp-content/plugins/fitet-ricevute.
+Build Angular production riuscita. Superati 11 controlli browser mirati:
+valore iniziale 100 nelle viste prezzi, iscrizioni e giocatori; barra indeterminata nella ricerca;
+0%, 47% e 100% corrispondenti al job; permanenza della barra e risultato finale nello stesso riquadro;
+layout mobile senza overflow; preferenza salvata 25 rispettata; nessun errore JavaScript non gestito.
+Impostato 100 anche nella scheda giocatore e nei due recap rimborsi. Nessuna modifica al backend
+operativo: il test controlla l'avanzamento con risposte API simulate e non accede al portale FITeT.

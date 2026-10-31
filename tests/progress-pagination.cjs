@@ -1,0 +1,50 @@
+const assert = require('node:assert/strict');
+const {chromium}=require(process.env.FR_PLAYWRIGHT_MODULE || '../app/node_modules/playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true,...(process.env.FR_BROWSER_PATH?{executablePath:process.env.FR_BROWSER_PATH}:{})});
+ const context=await browser.newContext({viewport:{width:1600,height:1000}});const page=await context.newPage();
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ let checks=0;const check=(value,message)=>{assert.ok(value,message);checks++;console.log('PASS',message)};
+ const pager=grid=>page.locator(grid+' .ag-paging-page-size');
+ try {
+  await page.goto('http://127.0.0.1:8095/fitet-ricevute/');
+  await page.getByLabel('Username',{exact:true}).fill('fr-tester');await page.getByLabel('Password',{exact:true}).fill('FR-test-only-2026!');
+  await page.getByRole('button',{name:'Accedi',exact:true}).click();
+  await page.locator('#prices-grid .ag-row').first().waitFor();
+  check(/\b100\b/.test(await pager('#prices-grid').innerText()),'prices default to 100 rows');
+  await page.getByRole('link',{name:'Iscrizioni',exact:true}).click();await page.locator('#entries-grid .ag-row').first().waitFor();
+  check(/\b100\b/.test(await pager('#entries-grid').innerText()),'entries default to 100 rows');
+  await page.getByRole('link',{name:'Giocatori',exact:true}).click();await page.locator('#players-grid .ag-row').first().waitFor();
+  check(/\b100\b/.test(await pager('#players-grid').innerText()),'players default to 100 rows');
+  await page.getByRole('link',{name:'Prezzi tornei',exact:true}).click();await page.locator('#prices-grid .ag-row').first().waitFor();
+  let start;const started=new Promise(resolve=>start=resolve);let step;
+  const nextStep=()=>new Promise(resolve=>step=resolve);
+  const first=nextStep();
+  await page.route('**/wp-json/fitet-ricevute/v1/sincronizzazione',route=>start(route));
+  await page.route('**/wp-json/fitet-ricevute/v1/sincronizzazione/*/passo',route=>step(route));
+  await page.getByRole('button',{name:'Sincronizza ricevute',exact:true}).click();
+  const startRoute=await started;
+  const bar=page.getByRole('progressbar',{name:'Avanzamento elaborazione ricevute'});await bar.waitFor();
+  check(await bar.getAttribute('value')===null,'catalog discovery displays indeterminate progress');
+  const job={id:'a'.repeat(32),total:19,processed:0,imported:0,done:false,errors:[]};
+  await startRoute.fulfill({json:job});let route=await first;
+  check(await bar.getAttribute('value')==='0','receipt processing starts at zero percent');
+  const second=nextStep();await route.fulfill({json:{...job,processed:9,imported:9}});route=await second;
+  check(await bar.getAttribute('value')==='47','progress tracks processed receipts out of total');
+  await route.fulfill({json:{...job,processed:19,imported:19,done:true}});
+  await page.getByRole('status').filter({hasText:'19 ricevute sincronizzate su 19.'}).waitFor();
+  check(await bar.getAttribute('value')==='100','progress remains at 100 percent after completion');
+  check((await page.locator('.sync-progress').innerText()).includes('19 ricevute sincronizzate su 19.'),'result and progress share the same panel');
+  await page.setViewportSize({width:390,height:844});
+  check(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'progress panel fits mobile width');
+  await page.setViewportSize({width:1600,height:1000});
+  await page.evaluate(()=>{
+   const key=Object.keys(localStorage).find(k=>k.startsWith('fr:tables:')&&k.endsWith(':prices'));
+   const prefs=JSON.parse(localStorage.getItem(key));prefs.grid.pagination={page:0,pageSize:25};localStorage.setItem(key,JSON.stringify(prefs));
+  });
+  await page.reload();await page.locator('#prices-grid .ag-row').first().waitFor();
+  check(/\b25\b/.test(await pager('#prices-grid').innerText()),'saved page size remains preferred over default');
+  check(errors.length===0,'no uncaught browser errors');
+  console.log(checks+' progress/pagination checks passed.');
+ } finally {await context.close();await browser.close();}
+})().catch(error=>{console.error(error);process.exit(1)});

@@ -44,6 +44,12 @@ export class DataService {
   readonly busy = signal(false);
   readonly syncing = signal(false);
   readonly job = signal<Job | null>(null);
+  readonly syncProgress = computed(() => {
+    const job = this.job();
+    if (!job) return 0;
+    if (job.total <= 0) return job.done ? 100 : 0;
+    return Math.max(0, Math.min(100, Math.floor(job.processed / job.total * 100)));
+  });
   readonly lastSyncAt = signal<string | null>(null);
   readonly lastSyncLabel = computed(() => {
     const value = this.lastSyncAt();
@@ -65,7 +71,7 @@ export class DataService {
   }
   clear(userId: number | undefined): void {
     try { sessionStorage.removeItem('fr-refund-selection-' + userId); } catch { /* storage may be disabled */ }
-    this.selected.set([]); this.races.set([]); this.entries.set([]); this.lastSyncAt.set(null);
+    this.selected.set([]); this.races.set([]); this.entries.set([]); this.lastSyncAt.set(null); this.job.set(null);
   }
 
   private async all(kind: string): Promise<Row[]> {

@@ -11,11 +11,20 @@
   </nav>
   <main class="dashboard-main data-main">
     @if (data.error()) { <p class="error-box" role="alert">{{ data.error() }}</p> }
-    @if (data.notice()) { <p class="notice" role="status">{{ data.notice() }}</p> }
+    @if (data.notice() && !data.job()?.done) { <p class="notice" role="status">{{ data.notice() }}</p> }
     @if (data.loading()) { <p class="load-note" role="status">Caricamento dei dati…</p> }
-    @if (data.syncing()) { <p class="notice" role="status">@if (data.job()) { Ricevute elaborate: {{ data.job()!.processed }} / {{ data.job()!.total }} } @else { Accesso all’extranet e ricerca automatica delle ricevute… }</p> }
+    @if (data.syncing() || data.job()) {
+      <div class="sync-progress notice">
+        @if (data.job()?.done && data.notice()) { <p class="sync-result" role="status">{{ data.notice() }}</p> }
+        <div class="sync-progress-label" role="status">
+          <span>@if (data.job()) { Ricevute elaborate: {{ data.job()!.processed }} / {{ data.job()!.total }} } @else { Accesso all’extranet e ricerca automatica delle ricevute… }</span>
+          @if (data.job()) { <strong>{{ data.syncProgress() }}%</strong> }
+        </div>
+        <progress max="100" [attr.value]="data.job() ? data.syncProgress() : null" aria-label="Avanzamento elaborazione ricevute">{{ data.syncProgress() }}%</progress>
+      </div>
+    }
     @if (data.job()?.errors?.length) { <div class="error-box"><strong>Ricevute da verificare</strong><ul>@for (item of data.job()!.errors; track item.receipt) { <li>Ricevuta {{ item.receipt }}: {{ item.message }}</li> }</ul></div> }
     <router-outlet />
   </main>
-  <footer class="dashboard-footer">FITET Ricevute · Versione 0.6.1</footer>
+  <footer class="dashboard-footer">FITET Ricevute · Versione 0.6.2</footer>
 </div>

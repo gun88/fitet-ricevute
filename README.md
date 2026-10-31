@@ -1,7 +1,7 @@
 # FITET Ricevute
 
 Plugin WordPress con frontend Angular per la gestione delle ricevute dei tornei FITeT.
-Versione **0.6.1**: cataloghi e ricevute separati, un solo login e download dei soli PDF elencati nelle partecipazioni.
+Versione **0.6.2**: 100 righe iniziali per tutte le griglie e barra di avanzamento della sincronizzazione.
 
 ## Cosa funziona
 
@@ -210,7 +210,7 @@ npm run build
 npm run package
 ```
 
-`npm run build` scrive in `assets/app/`; `npm run package` crea `release/fitet-ricevute-0.6.1.zip`
+`npm run build` scrive in `assets/app/`; `npm run package` crea `release/fitet-ricevute-0.6.2.zip`
 e un archivio `-source.zip` con il progetto completo, esclusi node_modules e ambiente di test generato.
 Lo ZIP non contiene sorgenti Angular, node_modules, test, database o credenziali di sviluppo.
 
@@ -256,3 +256,11 @@ Riferimenti: [ResPong](https://github.com/gun88/res-pong-codex),
 [REST API WordPress](https://developer.wordpress.org/rest-api/),
 [versioni Angular](https://angular.dev/reference/releases),
 [driver SQLite ufficiale](https://wordpress.org/plugins/sqlite-database-integration/).
+
+## Paginazione e avanzamento (0.6.2)
+
+Tutte le sei griglie partono da 100 righe per pagina. Le preferenze salvate nel browser hanno precedenza,
+compresa una diversa dimensione di pagina scelta in precedenza; filtri e ordinamenti restano conservati.
+Durante la ricerca iniziale la barra è indeterminata. Dopo la creazione del job mostra il rapporto
+ricevute elaborate/totale, con percentuale, e resta al 100% dopo il completamento accanto al risultato.
+La percentuale misura le ricevute elaborate: gli eventuali errori restano indicati separatamente.
