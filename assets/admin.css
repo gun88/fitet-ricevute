@@ -1,0 +1,26 @@
+.fr-admin { max-width: 1100px; }
+.fr-admin, .fr-admin * { box-sizing: border-box; }
+.fr-admin h1, .fr-admin h2, .fr-admin p, .fr-admin td { overflow-wrap: anywhere; }
+.fr-admin .regular-text { max-width: 100%; width: 420px; }
+.fr-admin textarea { max-width: 100%; }
+.fr-admin .fr-users-table { table-layout: fixed; }
+.fr-admin .fr-users-table a { display: inline-block; padding: 7px 0; }
+.fr-admin .submit { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 782px) {
+  .fr-admin { margin-right: 10px; }
+  .fr-admin h1 { font-size: 23px; line-height: 1.4; }
+  .fr-admin .form-table th, .fr-admin .form-table td { width: 100%; padding-left: 0; padding-right: 0; }
+  .fr-admin .form-table th { padding-top: 20px; padding-bottom: 7px; }
+  .fr-admin input:not([type="checkbox"]):not([type="hidden"]), .fr-admin textarea { width: 100%; max-width: 100%; font-size: 16px; }
+  .fr-admin input:not([type="checkbox"]):not([type="hidden"]) { min-height: 44px; }
+  .fr-admin input[type="checkbox"] { width: 22px; height: 22px; }
+  .fr-admin .button { min-height: 44px; line-height: 1.5; padding: 10px 16px; }
+  .fr-admin .fr-users-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .fr-admin .fr-users-table tbody, .fr-admin .fr-users-table tr { display: block; }
+  .fr-admin .fr-users-table tr { padding: 10px; border-bottom: 1px solid #dcdcde; }
+  .fr-admin .fr-users-table td { display: flex; align-items: center; gap: 12px; width: 100%; padding: 7px 4px; }
+  .fr-admin .fr-users-table td::before { content: attr(data-label); flex: 0 0 85px; font-weight: 600; }
+  .fr-admin .fr-users-table td[colspan] { display: block; }
+  .fr-admin .fr-users-table td[colspan]::before { display: none; }
+  .fr-admin .fr-users-table a { min-height: 44px; display: inline-flex; align-items: center; }
+}

@@ -1,0 +1,21 @@
+<div class="dashboard">
+  <header class="topbar">
+    <a class="brand compact" routerLink="/prezzi"><span class="brand-mark" aria-hidden="true">fr<span>•</span></span><span>{{ settings()?.app_name || 'FITET Ricevute' }}</span></a>
+    <div class="user-menu"><span>{{ auth.user()?.display_name }}</span><button class="secondary-button" (click)="logout()" [disabled]="data.locked()">Esci</button></div>
+  </header>
+  <nav class="app-nav" aria-label="Navigazione principale">
+    <a routerLink="/prezzi" routerLinkActive="active">Prezzi tornei</a>
+    <a routerLink="/iscrizioni" routerLinkActive="active">Iscrizioni</a>
+    <a routerLink="/giocatori" routerLinkActive="active">Giocatori</a>
+    <a routerLink="/rimborsi" routerLinkActive="active">Emissione rimborso</a>
+  </nav>
+  <main class="dashboard-main data-main">
+    @if (data.error()) { <p class="error-box" role="alert">{{ data.error() }}</p> }
+    @if (data.notice()) { <p class="notice" role="status">{{ data.notice() }}</p> }
+    @if (data.loading()) { <p class="load-note" role="status">Caricamento dei dati…</p> }
+    @if (data.syncing()) { <p class="notice" role="status">@if (data.job()) { Ricevute elaborate: {{ data.job()!.processed }} / {{ data.job()!.total }} } @else { Accesso all’extranet e ricerca automatica delle ricevute… }</p> }
+    @if (data.job()?.errors?.length) { <div class="error-box"><strong>Ricevute da verificare</strong><ul>@for (item of data.job()!.errors; track item.receipt) { <li>Ricevuta {{ item.receipt }}: {{ item.message }}</li> }</ul></div> }
+    <router-outlet />
+  </main>
+  <footer class="dashboard-footer">FITET Ricevute · Versione 0.6.1</footer>
+</div>

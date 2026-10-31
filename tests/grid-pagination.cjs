@@ -1,0 +1,36 @@
+const assert = require('node:assert/strict');
+const {chromium,request} = require(process.env.FR_PLAYWRIGHT_MODULE || '../app/node_modules/playwright');
+(async()=>{
+  const origin='http://127.0.0.1:8095'; const api=origin+'/wp-json/fitet-ricevute/v1/';
+  const client=await request.newContext({extraHTTPHeaders:{Origin:origin,'X-FR-Request':'1'}});
+  await client.post(api+'auth/login',{data:{username:'fr-tester',password:'FR-test-only-2026!'}});
+  const entries=await (await client.get(api+'iscrizioni')).json(); const sample=entries.items[0];
+  const rows=Array.from({length:51},(_,i)=>({...sample,id:90000+i,athlete1_name:i===50?'ZZZ Fuori prima pagina':'Atleta test '+String(i).padStart(3,'0'),athlete1_card:String(90000+i),athlete2_name:null,reimbursed:0}));
+  const pages=[];
+  const browser=await chromium.launch({headless:true,...(process.env.FR_BROWSER_PATH?{executablePath:process.env.FR_BROWSER_PATH}:{})});
+  const context=await browser.newContext({viewport:{width:1600,height:1000}});const page=await context.newPage();
+  await page.route('**/wp-json/fitet-ricevute/v1/iscrizioni*',async route=>{
+    const number=Number(new URL(route.request().url()).searchParams.get('page')||1); pages.push(number);
+    await route.fulfill({json:{items:rows.slice((number-1)*50,number*50),page:number,total:51,per_page:50}});
+  });
+  await page.goto(origin+'/fitet-ricevute/');
+  await page.getByLabel('Username',{exact:true}).fill('fr-tester');await page.getByLabel('Password',{exact:true}).fill('FR-test-only-2026!');
+  await page.getByRole('button',{name:'Accedi',exact:true}).click();
+  await page.getByRole('link',{name:'Iscrizioni',exact:true}).click();
+  const first=page.locator('#entries-grid .ag-row[row-index="0"]');
+  await first.waitFor();
+  assert.deepEqual(pages,[1,2]); console.log('PASS client loads all API pages before filtering');
+  await page.getByLabel('Cerca iscrizioni',{exact:true}).fill('ZZZ Fuori prima pagina');
+  await first.locator('[col-id="athletes"]').filter({hasText:'ZZZ Fuori prima pagina'}).waitFor();
+  await page.waitForFunction(()=>document.querySelectorAll('#entries-grid .ag-grid-scrolling-container .ag-row').length===1);
+  assert.equal(await page.locator('#entries-grid .ag-grid-scrolling-container .ag-row').count(),1); console.log('PASS grid filter finds a row beyond the first 50 API records');
+  await first.locator('.ag-selection-checkbox input').check();
+  await page.getByRole('button',{name:'Emetti rimborso (1)',exact:true}).waitFor();
+  await page.getByLabel('Cerca iscrizioni',{exact:true}).fill('Atleta test');
+  await first.locator('[col-id="athletes"]').filter({hasText:'Atleta test'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Emetti rimborso (1)',exact:true}).isEnabled(),true); console.log('PASS filtered-out selection stays in the reimbursement draft');
+  await page.getByRole('button',{name:'Deseleziona tutto',exact:true}).click();
+  assert.equal(await page.getByRole('button',{name:'Emetti rimborso (0)',exact:true}).isDisabled(),true); console.log('PASS deselect clears selection across filters and grid pages');
+  await context.close();await browser.close();await client.dispose();
+  console.log('4 pagination/selection checks passed.');
+})().catch(error=>{console.error(error);process.exit(1)});

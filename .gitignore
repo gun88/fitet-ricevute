@@ -1,0 +1,10 @@
+app/node_modules/
+app/.angular/
+app/dist/
+.npm-cache/
+.composer-cache/
+vendor/
+release/
+tests/.runtime/
+tests/screenshots/
+.idea

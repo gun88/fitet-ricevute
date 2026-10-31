@@ -1,0 +1,47 @@
+<main class="login-layout">
+  <section class="intro-panel" aria-label="FITET Ricevute">
+    <a class="brand" href="#/login" aria-label="FITET Ricevute, accesso"><span class="brand-mark" aria-hidden="true">fr<span>•</span></span><span>FITET<br><strong>Ricevute</strong></span></a>
+    <div class="intro-copy">
+      <span class="eyebrow">IL PORTALE DELLA TUA SOCIETÀ</span>
+      <h1>Dal torneo<br>al rimborso.<span class="accent"> Tutto in ordine.</span></h1>
+      <p>Ricevute, quote di iscrizione e rimborsi in un unico spazio di lavoro.</p>
+    </div>
+    <div class="workflow" aria-label="Le funzionalità del portale">
+      <div><span>01</span><p>Sincronizza<br><strong>ricevute</strong></p></div>
+      <div><span>02</span><p>Modifica<br><strong>prezzi tornei</strong></p></div>
+      <div><span>03</span><p>Crea<br><strong>rimborsi</strong></p></div>
+    </div>
+    <p class="intro-footer">Meno lavoro amministrativo. Più tempo al tavolo.</p>
+  </section>
+  <section class="login-panel">
+    <div class="login-card">
+      <div class="access-label"><span class="status-dot" aria-hidden="true"></span> AREA RISERVATA</div>
+      <h2>Accedi al portale</h2>
+      @if (settings()?.society_name) { <p class="society">{{ settings()?.society_name }}</p> }
+      <p class="login-description">{{ settings()?.login_message || 'Accedi con le credenziali fornite dalla tua società.' }}</p>
+      @if (loading()) {
+        <p role="status" class="notice">Verifica della sessione…</p>
+      } @else if (!settings()) {
+        <p role="alert" class="error-box">{{ error() }}</p>
+        <button type="button" class="primary-button" (click)="ngOnInit()">Riprova</button>
+      } @else if (!settings()?.enabled) {
+        <p role="status" class="notice">Il portale è temporaneamente disabilitato. Riprova più tardi.</p>
+      } @else {
+        <form #loginForm="ngForm" (ngSubmit)="submit()">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" [(ngModel)]="username" required maxlength="60" autocomplete="username" autocapitalize="none" spellcheck="false" [disabled]="submitting()" placeholder="Il tuo username">
+          <label for="password">Password</label>
+          <div class="password-field">
+            <input id="password" name="password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" required maxlength="4096" autocomplete="current-password" [disabled]="submitting()" placeholder="La tua password">
+            <button type="button" class="show-password" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Nascondi password' : 'Mostra password'" [attr.aria-pressed]="showPassword()">{{ showPassword() ? 'Nascondi' : 'Mostra' }}</button>
+          </div>
+          <label class="remember"><input name="remember" type="checkbox" [(ngModel)]="remember" [disabled]="submitting()"> Ricordami su questo dispositivo</label>
+          @if (error()) { <p role="alert" class="error-box">{{ error() }}</p> }
+          <button class="primary-button" type="submit" [disabled]="submitting() || loginForm.invalid || !username.trim()"><span>{{ submitting() ? 'Accesso in corso…' : 'Accedi' }}</span><span aria-hidden="true">→</span></button>
+        </form>
+        <p class="help-text">Non hai le credenziali o hai dimenticato la password?<br>Contatta l’amministratore della tua società.</p>
+      }
+    </div>
+    <p class="login-footer">{{ settings()?.app_name || 'FITET Ricevute' }} <span>·</span> Gestione tornei e rimborsi</p>
+  </section>
+</main>

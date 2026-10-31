@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict');
+const {resolve}=require('node:path');
+const esbuild=require('../app/node_modules/esbuild');
+esbuild.buildSync({entryPoints:[resolve(__dirname,'../app/src/app/players-model.ts')],bundle:true,platform:'node',format:'cjs',outfile:resolve(__dirname,'.runtime/players-model.cjs'),logLevel:'error'});
+const {playerKey,playersFor,seasonFor,seasonsFor,inSeason}=require('./.runtime/players-model.cjs');
+let checks=0;function ok(value,message){assert.ok(value,message);checks++;console.log('PASS',message)}
+ok(seasonFor('2026-06-30')==='2025/2026','June 30 remains in the previous sporting season');
+ok(seasonFor('2026-07-01')==='2026/2027','July 1 starts the new sporting season');
+ok(seasonFor('2027-01-01')==='2026/2027','calendar year change does not split the sporting season');
+const base={society_code:'718',tournament_key:'one',tournament_date:'2026-10-24',athlete1_name:'Atleta prova',athlete1_card:'101',athlete2_name:null,athlete2_card:null,reimbursed:false};
+const rows=[{...base,id:1},{...base,id:2,reimbursed:true},{...base,id:3,tournament_key:'old',tournament_date:'2025-06-30'},{...base,id:4,athlete2_name:'Compagno prova',athlete2_card:'202',reimbursed:true}];
+const players=playersFor(rows);const first=players.find(p=>p.card==='101');const second=players.find(p=>p.card==='202');
+ok(first.entries===4 && first.tournaments===2 && first.reimbursed===2,'player recap counts registrations, distinct tournaments and reimbursed quotas');
+ok(second.entries===1 && second.reimbursed===1,'double registrations also appear in the second athlete profile');
+const seasons=seasonsFor(rows);
+ok(seasons.join(',')==='2026/2027,2024/2025','available seasons are derived and sorted newest first');
+ok(inSeason(first.rows,'latest',seasons[0]).length===3,'profile defaults to the latest available season');
+ok(inSeason(first.rows,'all',seasons[0]).length===4 && inSeason(first.rows,'2024/2025',seasons[0]).length===1,'all seasons and historical seasons remain accessible');
+ok(inSeason([rows[2]],'latest',seasons[0]).length===0,'an athlete absent in the latest global season does not silently switch to an old year');
+ok(playerKey('Prova','101')===playerKey('Nuovo nome','101') && playerKey('Prova','101')!==playerKey('Prova','102'),'athlete identity uses the card and keeps homonyms separate');
+ok(playersFor([{...base,athlete2_name:base.athlete1_name,athlete2_card:base.athlete1_card}])[0].entries===1,'the same athlete is never counted twice in a malformed pair');
+console.log(checks+' player model checks passed.');

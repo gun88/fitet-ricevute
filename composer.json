@@ -1,0 +1,11 @@
+{
+  "name": "gun88/fitet-ricevute",
+  "description": "FITET Ricevute WordPress plugin",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=8.1",
+    "smalot/pdfparser": "^2.13.1"
+  },
+  "config": { "sort-packages": true, "allow-plugins": {} }
+}
