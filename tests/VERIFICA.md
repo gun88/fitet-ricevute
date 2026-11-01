@@ -248,3 +248,37 @@ Firma configurabile via upload PNG/JPEG, anteprima, sostituzione e rimozione.
 Per rigenerare le immagini di prova: `python tests/signature-fixtures.py`; quindi `php tests/signature.php`.
 La suite browser è `node tests/signature.cjs` (usa il setup/ripristino di `portal-fixture.php`).
 La verifica PDF del modello è `node tests/signature-pdf.cjs`; richiede pypdf/Poppler per l'ispezione successiva.
+
+
+## Aggiornamento 0.8.1 — 1 novembre 2026
+
+- **31 controlli backend configurazione/bozze/backup**: salvataggio unico e annullamento su immagine
+  invalida, password/immagini mantenute coi campi vuoti, note per riga e proprietà della bozza,
+  emittente preso dal server, doppi invariati, snapshot di note/firma/timbro, backup completo gzip,
+  rifiuto di colonne/riferimenti/percorsi/hash/immagini/totali incoerenti, rollback su errore database
+  con pulizia dei PDF nuovi, ripristino bozze e storico, credenziali di destinazione preservate,
+  creazione disabilitata degli account mancanti.
+- **29 controlli browser/API**: unico form e pulsante di salvataggio, immagini e impostazioni salvate
+  insieme, upload invalido senza modifiche parziali, nonce, export riservato, anteprima senza modifiche,
+  conferma ripristino e logout delle sessioni, mantenimento password/credenziali destinazione,
+  note editabili in griglia, textarea generale, doppi ancora selezionabili, emissione senza download
+  e passaggio al dettaglio, stampa nelle tre modalità, immagini storiche dopo rimozione dal config,
+  layout mobile e nessun errore JavaScript non gestito.
+- Ripetuti **24 controlli dati/importazione**, **27 flusso sincronizzazione**, **13 crittografia credenziali**,
+  **22 workflow rimborsi** e **11 modello/PDF**, inclusi centesimi dispari dei doppi.
+- Build Angular production riuscita; lint dei **19 file PHP distribuiti** riuscito.
+  Restano i warning di ottimizzazione delle dipendenze opzionali jsPDF.
+- PDF cumulativo/individuale e ristampa verificati con pypdf: note riga e generali presenti,
+  emittente configurato, firma e timbro disegnati una volta ciascuno. Le ristampe conservano le immagini
+  originali. La nota sulla divisione dei doppi non appare nelle ricevute individuali con soli singolari.
+- Note generali di **100 righe** paginate su tre pagine, testo interamente presente entro i margini,
+  firma/timbro una sola volta alla fine. Rendering Poppler dell’ultima pagina controllato visivamente.
+
+Test nel WordPress isolato con SQLite e dati fittizi, ripristinati a fine prova. Nessun accesso FITeT
+reale, nessuna emissione sul sito principale. Il database di produzione previsto resta MySQL/MariaDB;
+questo ambiente non è stato usato per le verifiche.
+
+Suite attuali: `admin-backup.php` e `admin-ui.cjs`, con `admin-ui-fixture.php` per setup/ripristino.
+Le suite UI storiche `portal.cjs` e `signature.cjs` mantengono i flussi precedenti alla 0.8.1.
+`signature-fixtures.py` genera firma e timbro sintetici; `signature-pdf.cjs` genera anche il PDF
+con 100 righe di note per ispezione con pypdf/Poppler.

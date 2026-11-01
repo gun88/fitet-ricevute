@@ -180,3 +180,6 @@ input::placeholder { color: #8a9690; font-size: 13px; }
 .check-field { display:flex; gap:10px; align-items:center; font-size:14px; }.check-field input { width:20px; height:20px; }
 .ag-cell, .ag-cell-value, .ag-cell-wrapper { user-select:text; -webkit-user-select:text; }
 @media(max-width:720px){.season-bar{padding:12px 20px;}.detail-summary{grid-template-columns:1fr;gap:7px;padding:16px;}.detail-summary dd{margin-bottom:10px;}.row-links{gap:10px;}.app-nav{flex-wrap:wrap;}}
+
+.refund-settings textarea { width:100%;min-width:0;min-height:100px;padding:12px;border:1px solid #d4dfd3;border-radius:7px;font:inherit;resize:vertical; }
+.print-controls { display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;margin:20px 0; }.print-controls label { display:flex;flex-direction:column;gap:8px; }.print-controls select { max-width:100%;min-height:40px;padding:6px;border:1px solid #d4dfd3;border-radius:6px; }.detail-summary dd { white-space:pre-line; }

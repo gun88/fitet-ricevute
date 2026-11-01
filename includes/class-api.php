@@ -73,6 +73,7 @@ final class FR_Api {
             'args' => array_merge($selection_args, ['reimbursed' => ['required' => true, 'type' => 'boolean']]),
             'callback' => fn(WP_REST_Request $request) => $this->attempt(fn() => $this->data->set_reimbursed($request['ids'], $request['reimbursed'], (int) $this->auth->current()['id'])),
         ]);
+        register_rest_route(self::NS,'/timbro',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn()=>['stamp'=>FR_Signature::snapshot('stamp')]]);
         register_rest_route(self::NS,'/firma',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn()=>['signature'=>FR_Signature::snapshot()]]);
         $workflow=new FR_Refund_Workflow($this->data);
         $current_user=fn()=>(int)$this->auth->current()['id'];
@@ -81,6 +82,7 @@ final class FR_Api {
             ['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'args'=>$selection_args,'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->cart_change($current_user(),$r['ids'],true))],
             ['methods'=>'DELETE','permission_callback'=>[$this->auth,'permission'],'args'=>$selection_args,'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->cart_change($current_user(),$r['ids'],false))],
         ]);
+        register_rest_route(self::NS,'/carrello/(?P<entry_id>\d+)',['methods'=>'PATCH','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->update_line($current_user(),(int)$r['entry_id'],$r->get_json_params()??[]))]);
         register_rest_route(self::NS,'/emissioni',[
             ['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'args'=>['page'=>['type'=>'integer','minimum'=>1,'default'=>1]],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->emissions((int)$r['page']))],
             ['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'args'=>array_merge($selection_args,['request_key'=>['required'=>true,'type'=>'string'],'prices'=>['required'=>true,'type'=>'object'],'options'=>['required'=>true,'type'=>'object']]),'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->issue($current_user(),$r->get_json_params()))],

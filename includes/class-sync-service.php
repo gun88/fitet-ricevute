@@ -18,7 +18,7 @@ final class FR_Sync_Service {
         $this->repository->import_catalog($scan['tournaments'], $society);
         $links = $scan['receipts'];
         $id = bin2hex(random_bytes(16));
-        $job = ['id' => $id, 'user_id' => $user_id, 'society_code' => $society, 'links' => $links,
+        $job = ['id' => $id, 'user_id' => $user_id, 'society_code' => $society, 'links' => $links, 'data_generation'=>get_option('fitet_ricevute_data_generation',0),
             'total' => count($links), 'processed' => 0, 'imported' => 0, 'errors' => [], 'done' => !$links];
         set_transient('fr_sync_' . $id, $job, 20 * MINUTE_IN_SECONDS);
         if (!$links) { update_option('fr_last_sync_' . hash('sha256', $society), gmdate('Y-m-d\TH:i:s\Z'), false); }
@@ -37,6 +37,7 @@ final class FR_Sync_Service {
             $job = get_transient('fr_sync_' . $id);
             if (!$job || $job['user_id'] !== $user_id) { throw new RuntimeException('Sincronizzazione scaduta o non autorizzata.'); }
             if ((string) FR_Settings::all()['society_code'] !== $job['society_code']) { throw new RuntimeException('Codice società modificato: avvia una nuova sincronizzazione.'); }
+            if(($job['data_generation']??0)!==get_option('fitet_ricevute_data_generation',0))throw new RuntimeException('Dati ripristinati: avvia una nuova sincronizzazione.');
             if ($job['done']) { return $this->public_job($job); }
             $url = $job['links'][$job['processed']];
             try { $this->download_import($url, $job['society_code']); $job['imported']++; }

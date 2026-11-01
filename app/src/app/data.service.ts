@@ -5,6 +5,7 @@ import { AuthService, errorMessage } from './auth.service';
 import { apiUrl } from './config';
 
 export interface Row {
+  refund_notes?: string;
   has_receipt?: boolean;
   id: number; race_id: number; society_code: string; tournament_key: string;
   source_committee: string; committee_name: string; committee_label: string; tournament_scope: 'national' | 'territorial' | 'unknown';

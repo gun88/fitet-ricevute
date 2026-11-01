@@ -11,7 +11,7 @@ final class FR_Refund_Workflow {
     private function checked($result): void { if($result===false)throw new RuntimeException('Salvataggio non riuscito: nessuna emissione parziale.'); }
     public function cart(int $user): array {
         global $wpdb;$table=$this->table('carrello');$society=$this->society();
-        $stored=$wpdb->get_results($wpdb->prepare("SELECT entry_id,snapshot_json FROM $table WHERE user_id=%d AND society_code=%s ORDER BY added_at,entry_id",$user,$society),ARRAY_A);
+        $stored=$wpdb->get_results($wpdb->prepare("SELECT entry_id,snapshot_json,notes FROM $table WHERE user_id=%d AND society_code=%s ORDER BY added_at,entry_id",$user,$society),ARRAY_A);
         $items=[];$current=[];
         if($stored){
             try{foreach($this->data->refund_preview(array_map('intval',array_column($stored,'entry_id')))['items'] as $row)$current[(int)$row['id']]=$row;}
@@ -20,6 +20,7 @@ final class FR_Refund_Workflow {
         foreach($stored as $item){
             try{$row=$current[(int)$item['entry_id']]??$this->data->refund_preview([(int)$item['entry_id']])['items'][0];$row['stale']=false;}
             catch(RuntimeException $error){$row=json_decode($item['snapshot_json'],true);$row['stale']=true;}
+            $row['refund_notes']=$item['notes']??'';
             $items[]=$row;
         }
         return ['items'=>$items];
@@ -29,12 +30,12 @@ final class FR_Refund_Workflow {
         if(!$add){foreach($ids as $id)$this->checked($wpdb->delete($table,['user_id'=>$user,'society_code'=>$society,'entry_id'=>(int)$id]));return $this->cart($user);}
         $cart_lock='fr_cart_lock_'.hash('sha256',$user.':'.$society);$old=get_option($cart_lock);
         if($old&&time()-(int)$old>120)delete_option($cart_lock);
-        if(!add_option($cart_lock,time(),'',false))throw new RuntimeException('Il carrello è già in aggiornamento. Riprova tra poco.');
+        if(!add_option($cart_lock,time(),'',false))throw new RuntimeException('La bozza rimborso è già in aggiornamento. Riprova tra poco.');
         try {
         $rows=$this->data->refund_preview($ids)['items'];
         foreach($rows as $row)if((int)$row['reimbursed'])throw new RuntimeException('Una quota è già rimborsata. Aggiorna la selezione.');
         $existing=$wpdb->get_col($wpdb->prepare("SELECT entry_id FROM $table WHERE user_id=%d AND society_code=%s",$user,$society));
-        if(count(array_unique(array_merge(array_map('intval',$existing),$ids)))>1000)throw new RuntimeException('Il carrello può contenere al massimo 1000 quote.');
+        if(count(array_unique(array_merge(array_map('intval',$existing),$ids)))>1000)throw new RuntimeException('La bozza rimborso può contenere al massimo 1000 quote.');
         $this->checked($wpdb->query('START TRANSACTION'));
         try{
             foreach($rows as $row){
@@ -46,6 +47,13 @@ final class FR_Refund_Workflow {
         return $this->cart($user);
         } finally { delete_option($cart_lock); }
     }
+    public function update_line(int $user,int $id,array $input): array {
+        global $wpdb;$table=$this->table('carrello');$society=$this->society();
+        if(array_keys($input)!==['notes']||!is_string($input['notes'])||mb_strlen($input['notes'])>1000)throw new RuntimeException('Note riga: massimo 1000 caratteri.');
+        $row=$wpdb->get_var($wpdb->prepare("SELECT entry_id FROM $table WHERE user_id=%d AND society_code=%s AND entry_id=%d",$user,$society,$id));
+        if(!$row)throw new RuntimeException('Riga della bozza non disponibile.');
+        $this->checked($wpdb->update($table,['notes'=>sanitize_textarea_field($input['notes'])],['user_id'=>$user,'society_code'=>$society,'entry_id'=>$id]));return $this->cart($user);
+    }
     private function decode(array $row): array {
         $row['id']=(int)$row['id'];$row['user_id']=(int)$row['user_id'];$row['total_cents']=(int)$row['total_cents'];
         $row['created_at']=str_replace(' ','T',$row['created_at']).'Z';
@@ -55,7 +63,7 @@ final class FR_Refund_Workflow {
     public function emissions(int $page): array {
         global $wpdb;$table=$this->table('emissioni');$society=$this->society();
         $rows=$wpdb->get_results($wpdb->prepare("SELECT * FROM $table WHERE society_code=%s ORDER BY id DESC LIMIT 50 OFFSET %d",$society,(max(1,$page)-1)*50),ARRAY_A);
-        return ['items'=>array_map(function($row){$value=$this->decode($row);if(isset($value['options']['signature']['data_url']))unset($value['options']['signature']['data_url']);return $value;},$rows),'total'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE society_code=%s",$society)),'page'=>$page,'per_page'=>50];
+        return ['items'=>array_map(function($row){$value=$this->decode($row);foreach(['signature','stamp'] as $image)if(isset($value['options'][$image]['data_url']))unset($value['options'][$image]['data_url']);return $value;},$rows),'total'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE society_code=%s",$society)),'page'=>$page,'per_page'=>50];
     }
     public function emission(int $id): array {
         global $wpdb;$table=$this->table('emissioni');
@@ -66,9 +74,10 @@ final class FR_Refund_Workflow {
         global $wpdb;$society=$this->society();$emissions=$this->table('emissioni');$cart=$this->table('carrello');$paid=FR_Data_Repository::table('rimborsi');
         $key=$input['request_key']??'';$options=$input['options']??[];$ids=$input['ids'];
         if(!is_string($key)||!preg_match('/^[a-f0-9]{32}$/D',$key))throw new RuntimeException('Identificativo emissione non valido.');
+        $options['issuer']=trim((string)FR_Settings::all()['society_name']);$options['format']='total';
         $date=$options['date']??'';$parsed=is_string($date)?DateTimeImmutable::createFromFormat('!Y-m-d',$date):false;
         if(!$parsed||$parsed->format('Y-m-d')!==$date||!is_string($options['issuer']??null)||trim($options['issuer'])===''||mb_strlen($options['issuer'])>180
-            ||!is_string($options['notes']??null)||mb_strlen($options['notes'])>500
+            ||!is_string($options['notes']??null)||mb_strlen($options['notes'])>2000
             ||!in_array($options['allocation']??'',['half','first','second'],true)||!in_array($options['format']??'',['total','athletes','both'],true))throw new RuntimeException('Impostazioni ricevuta non valide.');
         // Serialize issuance across users; expired locks can be recovered after interrupted requests.
         $lock='fr_issue_lock';$old=get_option($lock);
@@ -78,16 +87,20 @@ final class FR_Refund_Workflow {
             $existing=$wpdb->get_var($wpdb->prepare("SELECT id FROM $emissions WHERE user_id=%d AND society_code=%s AND request_key=%s",$user,$society,$key));
             if($existing)return $this->emission((int)$existing);
             $signature=FR_Signature::snapshot();
-            if(($options['signature']['sha256']??null)!==($signature['sha256']??null))throw new RuntimeException('La firma è cambiata: ripeti l’emissione per aggiornare le ricevute.');
+            if(array_key_exists('signature',$options)&&($options['signature']['sha256']??null)!==($signature['sha256']??null))throw new RuntimeException('La firma è cambiata: ripeti l’emissione per aggiornare le ricevute.');
             $options['signature']=$signature;
+            $stamp=FR_Signature::snapshot('stamp');
+            if(array_key_exists('stamp',$options)&&($options['stamp']['sha256']??null)!==($stamp['sha256']??null))throw new RuntimeException('Il timbro è cambiato: ripeti l’emissione per aggiornare le ricevute.');
+            $options['stamp']=$stamp;
             $this->checked($wpdb->query('START TRANSACTION'));
             try{
                 $cart_ids=array_map('intval',$wpdb->get_col($wpdb->prepare("SELECT entry_id FROM $cart WHERE user_id=%d AND society_code=%s",$user,$society)));
-                if(array_diff($ids,$cart_ids))throw new RuntimeException('La selezione non è più nel tuo carrello. Aggiorna la pagina.');
+                if(array_diff($ids,$cart_ids))throw new RuntimeException('La selezione non è più nella tua bozza rimborso. Aggiorna la pagina.');
+                $line_notes=[];foreach($wpdb->get_results($wpdb->prepare("SELECT entry_id,notes FROM $cart WHERE user_id=%d AND society_code=%s",$user,$society),ARRAY_A) as $line)$line_notes[(int)$line['entry_id']]=$line['notes']??'';
                 $rows=$this->data->refund_preview($ids)['items'];$total=0;$now=current_time('mysql',true);
                 foreach($rows as &$row){
-                    $id=(int)$row['id'];$amount=$row['price_cents'];
-                    if((int)$row['reimbursed']||$amount===null)throw new RuntimeException('Quote già rimborsate o prive di prezzo: verifica il carrello.');
+                    $id=(int)$row['id'];$amount=$row['price_cents'];$row['refund_notes']=$line_notes[$id]??'';
+                    if((int)$row['reimbursed']||$amount===null)throw new RuntimeException('Quote già rimborsate o prive di prezzo: verifica la bozza rimborso.');
                     if(!isset($input['prices'][(string)$id])||!is_int($input['prices'][(string)$id])||$input['prices'][(string)$id] !== (int)$amount)throw new RuntimeException('I prezzi sono cambiati: controlla il nuovo recap.');
                     $record=['reimbursed'=>1,'paid_cents'=>(int)$amount,'updated_at'=>$now,'updated_by'=>$user];
                     $exists=$wpdb->get_var($wpdb->prepare("SELECT entry_id FROM $paid WHERE entry_id=%d",$id));

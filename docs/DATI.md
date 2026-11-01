@@ -214,3 +214,32 @@ l'hash e salva in `options_json.signature` la propria copia canonica, non l'imma
 Il registro paginato omette `data_url`; il dettaglio autenticato restituisce lo snapshot completo.
 Le vecchie opzioni senza `signature` vengono interpretate come assenza di firma, mai come firma attuale.
 La disinstallazione elimina la firma configurata, conservando i dati delle emissioni come il resto dello storico.
+
+
+## Bozze, note, timbro e backup 0.8.1
+
+L’etichetta frontend è Bozza rimborso; tabella `carrello` e API conservano il nome per compatibilità.
+La colonna nullable `carrello.notes` conserva fino a 1000 caratteri e viene restituita come `refund_notes`.
+`PATCH /carrello/{entry_id} {notes}` verifica sessione, CSRF, società e appartenenza della riga.
+L’emissione copia le note delle righe dal database e prende sempre `issuer` dalle impostazioni server.
+`options.notes` contiene le Note generali (massimo 2000 caratteri). `allocation` rimane half/first/second.
+
+Il frontend registra prima l’emissione, poi passa a `#/rimborsi/{id}`. La scelta del formato avviene
+solo alla stampa, localmente, e non modifica lo snapshot. Il formato storico resta compatibile.
+L’opzione privata `fitet_ricevute_stamp` usa le stesse verifiche della firma; `GET /timbro`
+restituisce `{stamp}` solo ad utenti autenticati. Le emissioni conservano entrambe le immagini canoniche;
+le liste ne omettono i data URL. Non si applicano immagini attuali a vecchie emissioni che ne sono prive.
+
+`FR_Settings::save_configuration` valida impostazioni, credenziali e immagini prima di salvare le
+quattro opzioni in transazione. Un errore annulla l’intero salvataggio. Il form admin è unico.
+
+`FR_Backup` serializza dati, non SQL: formato JSON gzip versione 1, whitelist di sei tabelle e colonne
+ricavate dal DDL, controlli di riferimenti logici, tipi, unicità, totali emissioni e immagini.
+I PDF sono base64 con SHA-256, nomi senza percorsi, intestazione PDF e limiti di dimensione.
+Il ripristino usa una transazione, conserva gli ID sorgente, associa gli utenti per username,
+crea quelli mancanti disabilitati, non importa hash password o credenziali extranet.
+I file nuovi vengono rimossi se il ripristino fallisce; conflitti di hash non sovrascrivono file diversi.
+L’anteprima è legata all’admin, a un file temporaneo e al suo hash, con scadenza di 15 minuti.
+Durante il ripristino un blocco temporaneo sospende le API operative; vengono revocate le sessioni
+e cambiata la generazione dei dati per impedire la ripresa di job di sincronizzazione precedenti.
+Il backup non include localStorage né dati di altri plugin WordPress.

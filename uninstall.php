@@ -10,3 +10,5 @@ wp_clear_scheduled_hook('fitet_ricevute_cleanup_sessions');
 delete_option('fitet_ricevute_extranet_credentials');
 
 delete_option('fitet_ricevute_signature');
+
+delete_option('fitet_ricevute_stamp');

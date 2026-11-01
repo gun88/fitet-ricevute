@@ -12,7 +12,7 @@ interface Link {label:string;url:string;query?:Record<string,string>}
 export class EntityLinksComponent {
  params:any;agInit(p:any){this.params=p;}refresh(p:any){this.params=p;return true;}links():Link[]{return this.params.links(this.params.data);}
 }
-@Component({selector:'fr-cart-action',template:`<button class="grid-action" [disabled]="portal.data.locked() || (!remove && (row.reimbursed || portal.cartIds().has(row.id) || row.stale))" (click)="portal.changeCart([row],!remove)">{{remove?'Rimuovi':portal.cartIds().has(row.id)?'Nel carrello':'Aggiungi al carrello'}}</button>`})
+@Component({selector:'fr-cart-action',template:`<button class="grid-action" [disabled]="portal.data.locked() || (!remove && (row.reimbursed || portal.cartIds().has(row.id) || row.stale))" (click)="portal.changeCart([row],!remove)">{{remove?'Rimuovi':portal.cartIds().has(row.id)?'In bozza rimborso':'Metti in bozza'}}</button>`})
 export class CartActionComponent {
  readonly portal=inject(PortalService);row:any;remove=false;
  agInit(p:any){this.row=p.data;this.remove=!!p.remove;}refresh(p:any){this.agInit(p);return true;}
@@ -20,7 +20,7 @@ export class CartActionComponent {
 @Component({selector:'fr-entity-grid',imports:[AgGridAngular],template:`
  <div class="grid-toolbar"><label>Cerca nella tabella<input type="search" [attr.aria-label]="'Cerca '+label" [value]="view.search()" (input)="view.setSearch($any($event.target).value)"></label><button class="text-button" (click)="view.reset(api)">Azzera filtri e ordine</button>
  @if(kind==='entries' && !cartMode){<button class="secondary-button" [disabled]="!selected().length || portal.data.locked()" (click)="addSelected()">Aggiungi selezionate ({{selected().length}})</button>}</div>
- @if(view){<ag-grid-angular [id]="viewKey+'-grid'" class="main-grid" [theme]="theme" [rowData]="rows" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" (gridReady)="api=$event.api" [rowSelection]="selection" [selectionColumnDef]="selectionColumn" (selectionChanged)="selected.set($event.api.getSelectedRows())" [readOnlyEdit]="true" [singleClickEdit]="true" [stopEditingWhenCellsLoseFocus]="true" (cellEditRequest)="portal.data.price($event.data,$event.newValue)" />}
+ @if(view){<ag-grid-angular [id]="viewKey+'-grid'" class="main-grid" [theme]="theme" [rowData]="rows" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" (gridReady)="api=$event.api" [rowSelection]="selection" [selectionColumnDef]="selectionColumn" (selectionChanged)="selected.set($event.api.getSelectedRows())" [readOnlyEdit]="true" [singleClickEdit]="true" [stopEditingWhenCellsLoseFocus]="true" (cellEditRequest)="edit($event)" />}
 `})
 export class EntityGridComponent implements OnInit, OnChanges {
  @Input() rows:any[]=[];@Input() kind:'tournaments'|'races'|'entries'|'emissions'='entries';@Input() viewKey='entries';@Input() label='iscrizioni';@Input() cartMode=false;
@@ -31,6 +31,7 @@ export class EntityGridComponent implements OnInit, OnChanges {
  view!:TableView;api?:GridApi;columns:ColDef<any>[]=[];selection:any;
  async addSelected(){await this.portal.changeCart(this.selected(),true);this.api?.deselectAll();this.selected.set([]);}
  ngOnChanges(changes:SimpleChanges){if(changes['rows']){this.selected.set([]);this.api?.deselectAll();}}
+ edit(event:any){if(this.cartMode&&event.colDef.field==='refund_notes')void this.portal.updateLine(event.data,String(event.newValue??''));else void this.portal.data.price(event.data,event.newValue);}
  private link(field:string,title:string,links:(row:any)=>Link[],width=240):ColDef<any>{return {field,headerName:title,width,...(field==='actions'?{pinned:'right' as const}:{}),cellRenderer:EntityLinksComponent,cellRendererParams:{links}};}
  ngOnInit(){
   this.view=runInInjectionContext(this.injector,()=>new TableView('portal-'+this.viewKey));
@@ -52,9 +53,10 @@ export class EntityGridComponent implements OnInit, OnChanges {
     {field:'price_cents',headerName:'Quota',valueFormatter:p=>money(p.value==null?null:Number(p.value))},
     {colId:'status',headerName:'Stato quota',valueGetter:p=>this.portal.state(p.data)},
     {colId:'tournament_status',headerName:'Stato torneo',valueGetter:p=>this.portal.tournamentState(p.data.tournament_key)},
+    {field:'refund_notes',headerName:'Note riga',width:270,editable:()=>this.cartMode&&!this.portal.data.locked(),cellEditor:'agLargeTextCellEditor',cellEditorPopup:true,cellEditorParams:{maxLength:1000},wrapText:true,autoHeight:true},
     {field:'paid_cents',headerName:'Rimborsato',valueFormatter:p=>money(p.value==null?null:Number(p.value))},
-    {colId:'cart',headerName:'Carrello',width:190,pinned:'right',sortable:false,filter:false,cellRenderer:CartActionComponent,cellRendererParams:{remove:this.cartMode}}];
+    {colId:'cart',headerName:'Bozza rimborso',width:190,pinned:'right',sortable:false,filter:false,cellRenderer:CartActionComponent,cellRendererParams:{remove:this.cartMode}}];
   }
-  if(this.kind==='emissions')this.columns=[this.link('id','Rimborso',r=>[{label:'Rimborso #'+r.id,url:'/rimborsi/'+r.id}],180),{field:'created_at',headerName:'Data e ora emissione',width:240,sort:'desc',valueFormatter:p=>new Date(p.value).toLocaleString('it-IT')},{field:'total_cents',headerName:'Importo emesso',valueFormatter:p=>money(Number(p.value))},{colId:'count',headerName:'Iscrizioni',valueGetter:p=>p.data.items.length},{colId:'issuer',headerName:'Emittente',valueGetter:p=>p.data.options.issuer}];
+  if(this.kind==='emissions')this.columns=[this.link('id','Rimborso',r=>[{label:'Rimborso #'+r.id,url:'/rimborsi/'+r.id}],180),{field:'created_at',headerName:'Data e ora emissione',width:240,sort:'desc',valueFormatter:p=>new Date(p.value).toLocaleString('it-IT')},{field:'total_cents',headerName:'Importo emesso',valueFormatter:p=>money(Number(p.value))},{colId:'count',headerName:'Iscrizioni',valueGetter:p=>p.data.items.length},{colId:'issuer',headerName:'Emittente',valueGetter:p=>p.data.options.issuer},this.link('actions','Ricevute',r=>[{label:'Stampa',url:'/rimborsi/'+r.id}],150)];
  }
 }

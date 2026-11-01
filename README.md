@@ -1,6 +1,6 @@
 # FITET Ricevute
 
-Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.7.1**.
+Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.8.1**.
 
 ## Pagine del portale
 
@@ -10,44 +10,50 @@ Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.7.1**.
   modifica della quota via API, origine prezzo e confronto con il totale PDF; Dettaglio e Iscrizioni per gara.
   Lasciare vuota una quota rimuove il prezzo manuale e ripristina quello automatico.
 - **Iscrizioni**: link al torneo, alla gara e agli atleti; stato della quota e del torneo, aggiunta singola
-  o delle righe selezionate al carrello. Le quote già rimborsate non sono aggiungibili.
+  o delle righe selezionate alla bozza rimborso. Le quote già rimborsate non sono aggiungibili.
 - **Rimborsi Emessi**: registro delle emissioni con data/ora server, importo, emittente e numero iscrizioni.
-- **Carrello**: iscrizioni personali salvate nel database, eliminabili, recap per atleta, scelta PDF
-  cumulativo, separato per atleta o entrambi. Il badge nel menu conta tutti gli elementi, anche di altre stagioni.
+- **Bozza rimborso**: iscrizioni personali salvate nel database, eliminabili, note modificabili per riga
+  e recap per atleta. Il badge nel menu conta tutti gli elementi, anche di altre stagioni.
+  L’emissione apre il dettaglio del rimborso; qui si sceglie cosa stampare.
 
 Le pagine dettaglio di torneo, gara, rimborso e giocatore riusano le stesse tabelle e azioni degli elenchi.
 Il dettaglio giocatore mostra iscrizioni e rimborsi; è raggiungibile dai nomi degli atleti.
-La directory giocatori resta raggiungibile su `#/giocatori`. Il vecchio URL `#/prezzi` reindirizza a Gare.
+La directory giocatori resta raggiungibile su `#/giocatori`. Il vecchio URL `#/prezzi` reindirizza a Gare; `#/carrello` apre Bozza rimborso.
 
 La select **Stagione agonistica** è unica per il frontend e salvata per sito/account nel browser.
 Le stagioni vanno dal 1° luglio al 30 giugno; “Ultima disponibile” sceglie la più recente nei dati.
-La stagione filtra elenchi, dettagli e carrello. Le emissioni conservano sempre il totale originale:
+La stagione filtra elenchi, dettagli e bozza rimborso. Le emissioni conservano sempre il totale originale:
 nel dettaglio l'elenco segue il filtro globale, mentre il PDF riproduce l'emissione completa.
 
 AG Grid Community: testi selezionabili, filtri, ordinamento, ricerca e preferenze per tabella/utente/browser.
 100 righe iniziali, con precedenza alle preferenze già salvate. Layout responsive e scorrimento interno.
 La barra di sincronizzazione e la data dell'ultimo completamento riuscito restano nella pagina Tornei.
 
-## Carrello ed emissione
+## Bozza rimborso, emissione e stampa
 
-Il carrello è distinto per utente del portale e società: resiste a logout, cambio browser e riavvio.
-Contiene al massimo 1000 quote. Il prezzo è riletto dal server e non congelato dall'aggiunta al carrello.
+La bozza è distinta per utente del portale e società: resiste a logout, cambio browser e riavvio.
+Contiene al massimo 1000 quote. Il prezzo è riletto dal server e non congelato dall’aggiunta alla bozza.
 Una quota rimossa dalla fonte resta visibile come “Da verificare” e può essere eliminata, ma non emessa.
+La colonna **Note riga** è modificabile e salvata via API (massimo 1000 caratteri per iscrizione).
+**Note generali** è un campo multilinea, massimo 2000 caratteri.
+La società emittente proviene sempre dalla configurazione sul server e non è modificabile nella bozza.
+La ripartizione dei doppi rimane selezionabile: metà per atleta, tutta al primo oppure tutta al secondo.
 
-**Emetti rimborsi** prepara prima i file sul client, quindi registra sul server, in transazione,
-le iscrizioni/importi/impostazioni, le segna rimborsate e rimuove gli elementi dal proprio carrello.
+**Emetti rimborsi** registra sul server, in transazione, iscrizioni, importi, note e impostazioni,
+segna le quote rimborsate e le rimuove dalla propria bozza. Poi apre il dettaglio del rimborso.
 La richiesta è protetta da sessione, CSRF, controllo società, confronto dei prezzi e chiave idempotente;
 richieste concorrenti o ripetute non devono produrre due emissioni per lo stesso invio.
-Con una stagione specifica vengono emesse solo le quote visibili; le altre restano nel carrello.
+Con una stagione specifica vengono emesse solo le quote visibili; le altre restano nella bozza.
 
-Gli importi del registro sono snapshot: modifiche ai prezzi o sincronizzazioni successive non li riscrivono.
-Il dettaglio permette di riscaricare i PDF senza effettuare un'altra emissione. I PDF sono prodotti localmente
-dal browser e non archiviati sul server; sono archiviati i dati necessari a rigenerarli.
-Se il download è interrotto dopo la registrazione, il rimborso è comunque disponibile nel registro.
+Nel dettaglio, **Stampa ricevute** offre **Cumulativa**, **Per singolo atleta** o **Tutto insieme (ZIP)**.
+Il formato non si sceglie durante l’emissione. Si può ristampare cambiando modalità senza registrare
+un nuovo rimborso. I PDF sono prodotti localmente dal browser; sul server rimangono i dati per rigenerarli.
+Prezzi, note, firma e timbro dell’emissione sono snapshot: successive modifiche non cambiano lo storico.
+Se la stampa si interrompe, il rimborso resta disponibile nel registro.
 
-Le marcature “rimborsata” delle versioni precedenti sono conservate. Non vengono convertite in emissioni
-con una data inventata: il nuovo registro parte dalle emissioni effettuate con la 0.7.0.
-Le API precedenti di marcatura operativa restano compatibili, ma non creano documenti nel registro.
+Le marcature “rimborsata” delle versioni precedenti sono conservate, senza date di emissione inventate.
+Il registro parte dalle emissioni effettuate con la 0.7.0. Le API precedenti di marcatura operativa
+restano compatibili, ma non creano documenti nel registro.
 
 ## Sincronizzazione FITeT
 
@@ -72,18 +78,21 @@ L'import/export Excel resta da implementare.
 
 WordPress 6.5+, PHP 8.1+ (DOM, mbstring, iconv, zlib, OpenSSL), MySQL/MariaDB supportato da WordPress.
 Installazione singolo sito; HTTPS in produzione. Caricare lo ZIP installabile della cartella `release/`.
-Le tabelle aggiunte con la 0.7.0 vengono create automaticamente all'aggiornamento, conservando i dati esistenti.
+Le tabelle e la colonna note della bozza vengono aggiornate automaticamente, conservando i dati esistenti.
 
 In **wp-admin → FITET Ricevute → Configurazione** impostare società e codice, account del portale e credenziali
 extranet. Gli account del portale sono separati dagli utenti WordPress. Le credenziali FITeT sono cifrate
 sul backend e non esposte nel frontend. Le preferenze del browser non contengono password o token.
-L'interfaccia wp-admin è responsive. La disinstallazione conserva dati e registro, rimuovendo sessioni e segreti.
+Un unico pulsante **Salva configurazione** salva impostazioni, credenziali, firma e timbro.
+Se un’immagine non è valida, nessuna parte della configurazione viene salvata.
+I campi file vuoti conservano le immagini; la password vuota conserva quella esistente.
+L’interfaccia wp-admin è responsive. La disinstallazione conserva dati e registro, rimuovendo sessioni e segreti.
 
 ## Sorgenti e build
 
 `app/src/app/portal.service.ts`: cart, registro e stagione; `entity-grid.component.ts`: tabelle e azioni comuni;
 `portal-pages.component.ts`: elenchi/dettagli; `cart.component.ts`: revisione/emissione.
-`includes/class-refund-workflow.php`: carrello e registro; `docs/schema.sql`: DDL.
+`includes/class-refund-workflow.php`: bozza e registro; `docs/schema.sql`: DDL.
 I vecchi componenti di pagina restano nei sorgenti come riferimento, ma non sono collegati alle nuove rotte.
 
 ```sh
@@ -95,30 +104,52 @@ npm run package
 
 La build scrive in `assets/app/`; gli ZIP installabile e sorgenti sono in `release/`.
 L'API è sul namespace `fitet-ricevute/v1`; le richieste operative usano cookie di sessione e token CSRF.
-I nuovi endpoint sono `GET/POST/DELETE /carrello`, `GET/POST /emissioni` e `GET /emissioni/{id}`.
+Gli endpoint operativi sono `GET/POST/DELETE /carrello`, `PATCH /carrello/{entry_id}`,
+`GET/POST /emissioni` e `GET /emissioni/{id}`. Il nome tecnico `/carrello` resta compatibile.
 
 ## Test isolati
 
 `python tests/prepare-runtime.py C:/percorso/core-wordpress` prepara solo `tests/.runtime/wordpress`
 con il driver ufficiale SQLite per test. Non copia la configurazione o i dati del sito principale.
 `php tests/data.php`, `php tests/workflow.php` e `php tests/refunds.php` verificano backend e transazioni.
-Per il flusso browser: `php tests/portal-fixture.php`, avviare il server con `tests/router.php`,
-poi `node tests/portal.cjs`; al termine `php tests/portal-fixture.php clean` ripristina i dati fittizi.
-I test UI delle vecchie rotte precedenti alla 0.7.0 sono storici; la suite corrente è `portal.cjs`.
+Per l’interfaccia corrente: generare le immagini con `python tests/signature-fixtures.py`, avviare
+il server con `tests/router.php`, eseguire `php tests/admin-ui-fixture.php`, poi `node tests/admin-ui.cjs`.
+Al termine `php tests/admin-ui-fixture.php clean` ripristina i dati fittizi.
+`php tests/admin-backup.php` verifica salvataggio unico, note e backup/ripristino completo.
+Le suite browser `portal.cjs` e `signature.cjs` descrivono i flussi precedenti alla 0.8.1;
+la suite corrente per configurazione, backup, bozza e stampa è `admin-ui.cjs`.
 `FR_PLAYWRIGHT_MODULE` e `FR_BROWSER_PATH` possono indicare Playwright e Chrome locali.
 Nessuna credenziale reale viene salvata nei sorgenti o negli archivi distribuiti.
 
-## Firma sulle ricevute (0.7.1)
+## Firma e timbro sulle ricevute
 
-In **wp-admin → FITET Ricevute → Configurazione → Firma nelle ricevute PDF** caricare un'immagine
-PNG o JPG, massimo 1 MB e 4096 × 4096 pixel. PNG è consigliato per conservare lo sfondo trasparente.
-Sono disponibili anteprima, sostituzione e rimozione; lasciare vuoto il file conserva la firma esistente.
-L'immagine viene adattata senza deformazioni allo spazio sopra la riga della firma, nelle ricevute
-cumulative e individuali. Senza immagine rimane lo spazio per la firma manuale.
+In **wp-admin → FITET Ricevute → Configurazione** caricare firma e timbro PNG o JPG,
+massimo 1 MB e 4096 × 4096 pixel ciascuno. PNG conserva lo sfondo trasparente.
+Anteprima, sostituzione e rimozione usano lo stesso pulsante **Salva configurazione**.
+Le immagini vengono adattate senza deformazioni nelle ricevute cumulative e individuali.
+Senza firma rimane lo spazio per quella manuale; senza timbro non viene disegnata alcuna immagine.
 
-La firma è in un'opzione privata senza autoload, non nella libreria media pubblica; l'API `/firma`
-richiede autenticazione. I form admin richiedono permessi e nonce. Ogni nuova emissione conserva
-la propria immagine; sostituzioni o rimozioni valgono per le emissioni future, non per le ristampe.
-Le emissioni precedenti prive di firma rimangono senza firma. L'elenco del registro trasferisce solo
-il riferimento della firma; i dati completi sono letti al momento del riscaricamento.
-Una variazione della firma tra preparazione PDF e registrazione richiede di ripetere l'operazione.
+Le immagini sono opzioni private senza autoload, non file nella libreria media pubblica.
+Le API `/firma` e `/timbro` richiedono autenticazione; i form admin richiedono permessi e nonce.
+Ogni emissione conserva le immagini canoniche presenti sul server al momento dell’emissione:
+sostituzioni o rimozioni valgono per le emissioni future. Le emissioni precedenti senza immagini
+rimangono senza immagini. Il registro trasferisce i riferimenti; il dettaglio legge lo snapshot completo.
+
+## Backup completo
+
+**wp-admin → FITET Ricevute → Importa / esporta dati** esporta un archivio `.json.gz` con tornei/gare,
+iscrizioni, prezzi, stati di rimborso, bozze con note, emissioni, impostazioni, firma, timbro,
+date di ultima sincronizzazione e PDF originali archiviati. I PDF mancanti vengono segnalati.
+Le identità degli account del portale sono incluse per attribuire bozze ed emissioni.
+Password, credenziali extranet e sessioni sono escluse. Le preferenze del browser non sono nel backup.
+
+L’importazione verifica il file e mostra un’anteprima. Solo la conferma **Ripristina backup** sostituisce
+i dati del plugin e le relative impostazioni. Non modifica altri dati WordPress e conserva password
+e credenziali extranet del sito di destinazione. Gli account si associano per username; quelli mancanti
+vengono creati disabilitati con password casuale, da impostare prima dell’abilitazione.
+Il ripristino termina le sessioni del portale e invalida le sincronizzazioni già avviate:
+non utilizzare il portale mentre è in corso.
+
+Limiti attuali: archivio compresso 16 MB (o limite upload PHP inferiore), contenuto non compresso 64 MB,
+100.000 righe totali, PDF originali 32 MB complessivi e 3 MB per file.
+Il backup non è un file Excel: import/export Excel rimane una funzione distinta da implementare.

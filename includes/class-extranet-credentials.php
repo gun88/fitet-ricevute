@@ -56,7 +56,7 @@ final class FR_Extranet_Credentials {
         return $password === false ? $error : $password;
     }
 
-    public static function save(array $input) {
+    public static function prepare(array $input) {
         if (!is_string($input['username'] ?? '') || !is_string($input['password'] ?? '')) {
             return new WP_Error('fr_invalid_credentials', 'Formato delle credenziali FITeT non valido.');
         }
@@ -79,10 +79,12 @@ final class FR_Extranet_Credentials {
                 return $encrypted;
             }
         }
-        $value = ['username' => $username, 'password_encrypted' => $encrypted];
-        if ($value !== $previous && !update_option(self::OPTION, $value, false)) {
-            return new WP_Error('fr_save_failed', 'Impossibile salvare le credenziali FITeT.');
-        }
+        return ['username' => $username, 'password_encrypted' => $encrypted];
+    }
+
+    public static function save(array $input) {
+        $value=self::prepare($input);if(is_wp_error($value))return $value;
+        if($value!==self::stored()&&!update_option(self::OPTION,$value,false))return new WP_Error('fr_save_failed','Impossibile salvare le credenziali FITeT.');
         return true;
     }
 

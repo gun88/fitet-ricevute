@@ -51,6 +51,8 @@ final class FR_Auth {
     }
 
     public function permission(WP_REST_Request $request) {
+        $restore=get_option('fr_backup_restore_lock');
+        if($restore&&time()-(int)$restore<300)return new WP_Error('fr_restoring','Ripristino dati in corso. Riprova tra poco.',['status'=>503]);
         if (!FR_Settings::all()['enabled'] && $request->get_route() !== '/' . FR_Api::NS . '/auth/logout') {
             return new WP_Error('fr_disabled', 'Il portale è temporaneamente disabilitato.', ['status' => 503]);
         }

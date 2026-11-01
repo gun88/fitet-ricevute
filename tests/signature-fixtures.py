@@ -11,3 +11,9 @@ for name in ('a', 'b'):
 Image.open(out / 'signature-a.png').convert('RGB').save(out / 'signature.jpg')
 (out / 'invalid-signature.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')
 print('Synthetic signature fixtures created.')
+
+stamp = Image.new('RGBA', (240, 240), (255, 255, 255, 0))
+draw = ImageDraw.Draw(stamp)
+draw.ellipse((10,10,230,230), outline=(15,60,150,255), width=8)
+draw.text((65,105), 'TIMBRO TEST', fill=(15,60,150,255))
+stamp.save(out / 'stamp.png')

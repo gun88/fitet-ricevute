@@ -13,3 +13,9 @@ console.log('Generated signed cumulative, athlete, multipage and unsigned fixtur
 
 const jpg=readFileSync(resolve(__dirname,'.runtime/signature.jpg'));
 writeFileSync(resolve(output,'jpeg.pdf'),Object.values(buildRefundFiles([row],{...options,format:'total',signature:{...signature,format:'JPEG',data_url:'data:image/jpeg;base64,'+jpg.toString('base64')}}))[0]);
+
+const stampBytes=readFileSync(resolve(__dirname,'.runtime/stamp.png'));
+const stamp={data_url:'data:image/png;base64,'+stampBytes.toString('base64'),sha256:createHash('sha256').update(stampBytes).digest('hex'),width:240,height:240,format:'PNG'};
+const longNotes=Array.from({length:100},(_,i)=>'Nota multilinea '+String(i+1).padStart(3,'0')).join('\n');
+writeFileSync(resolve(output,'long-notes.pdf'),Object.values(buildRefundFiles([{...row,refund_notes:'Nota della riga'}],{...options,format:'total',notes:longNotes,stamp}))[0]);
+console.log('Generated 100-line notes fixture with signature and stamp.');

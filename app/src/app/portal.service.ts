@@ -7,9 +7,9 @@ import { apiUrl, config } from './config';
 import { seasonFor, seasonsFor, playerKey } from './players-model';
 import type { Allocation } from './refund-model';
 export interface SignatureImage { data_url: string; sha256: string; width: number; height: number; format: 'PNG'|'JPEG' }
-export interface ReceiptOptions { signature?: SignatureImage | null; issuer: string; date: string; notes: string; allocation: Allocation; format: 'total'|'athletes'|'both' }
+export interface ReceiptOptions { signature?: SignatureImage | null; stamp?: SignatureImage | null; issuer: string; date: string; notes: string; allocation: Allocation; format: 'total'|'athletes'|'both' }
 export interface Emission { id: number; user_id: number; created_at: string; total_cents: number; items: Row[]; options: ReceiptOptions }
-export type EmissionSummary = Omit<Emission,'options'> & {options: Omit<ReceiptOptions,'signature'> & {signature?: Omit<SignatureImage,'data_url'> | null}};
+export type EmissionSummary = Omit<Emission,'options'> & {options: Omit<ReceiptOptions,'signature'|'stamp'> & {signature?: Omit<SignatureImage,'data_url'> | null;stamp?: Omit<SignatureImage,'data_url'> | null}};
 const normal = (row: any): Row => ({...row,id:Number(row.id),race_id:Number(row.race_id),price_cents:row.price_cents==null?null:Number(row.price_cents),paid_cents:row.paid_cents==null?null:Number(row.paid_cents),reimbursed:Number(row.reimbursed)===1});
 @Injectable({providedIn:'root'})
 export class PortalService {
@@ -46,15 +46,17 @@ export class PortalService {
  clear(){this.revision++;this.cart.set([]);this.emissions.set([]);this.season.set('latest');}
  async changeCart(rows:Row[],add:boolean){await this.data.perform(async()=>{
    this.revision++;
-   const result=await firstValueFrom(this.http.request<{items:any[]}>(add?'POST':'DELETE',apiUrl('carrello'),{body:{ids:rows.map(r=>r.id)}}));this.cart.set(result.items.map(normal));this.data.notice.set(add?'Iscrizioni aggiunte al carrello.':'Iscrizioni rimosse dal carrello.');
+   const result=await firstValueFrom(this.http.request<{items:any[]}>(add?'POST':'DELETE',apiUrl('carrello'),{body:{ids:rows.map(r=>r.id)}}));this.cart.set(result.items.map(normal));this.data.notice.set(add?'Iscrizioni aggiunte alla bozza rimborso.':'Iscrizioni rimosse dalla bozza rimborso.');
  });}
+ async updateLine(row:Row,notes:string){await this.data.perform(async()=>{this.revision++;const result=await firstValueFrom(this.http.patch<{items:any[]}>(apiUrl('carrello/'+row.id),{notes}));this.cart.set(result.items.map(normal));this.data.notice.set('Note della bozza salvate.');});}
  async emission(id:number):Promise<Emission>{const e=await firstValueFrom(this.http.get<Emission>(apiUrl('emissioni/'+id)));return {...e,items:e.items.map(normal)};}
+ async stamp():Promise<SignatureImage|null>{return (await firstValueFrom(this.http.get<{stamp:SignatureImage|null}>(apiUrl('timbro')))).stamp;}
  async signature():Promise<SignatureImage|null>{return (await firstValueFrom(this.http.get<{signature:SignatureImage|null}>(apiUrl('firma')))).signature;}
  async issue(rows:Row[],options:ReceiptOptions,key:string):Promise<Emission>{
-   const result=await firstValueFrom(this.http.post<Emission>(apiUrl('emissioni'),{ids:rows.map(r=>r.id),prices:Object.fromEntries(rows.map(r=>[r.id,r.price_cents])),options:{...options,signature:options.signature?{sha256:options.signature.sha256}:null},request_key:key}));
+   const result=await firstValueFrom(this.http.post<Emission>(apiUrl('emissioni'),{ids:rows.map(r=>r.id),prices:Object.fromEntries(rows.map(r=>[r.id,r.price_cents])),options:{...options,...('signature' in options?{signature:options.signature?{sha256:options.signature.sha256}:null}:{}),...('stamp' in options?{stamp:options.stamp?{sha256:options.stamp.sha256}:null}:{})},request_key:key}));
    return {...result,items:result.items.map(normal)};
  }
- state(row:Row):string{return row.reimbursed?'Rimborsata':(row as any).stale?'Da verificare':this.cartIds().has(row.id)?'Nel carrello':'Da rimborsare';}
- tournamentState(key:string):string{const rows=this.data.entries().filter(r=>r.tournament_key===key);if(!rows.length)return 'Nessuna iscrizione';const count=rows.filter(r=>r.reimbursed).length;return count===rows.length?'Rimborsato':count?'Parzialmente rimborsato':rows.some(r=>this.cartIds().has(r.id))?'Nel carrello':'Da rimborsare';}
+ state(row:Row):string{return row.reimbursed?'Rimborsata':(row as any).stale?'Da verificare':this.cartIds().has(row.id)?'In bozza rimborso':'Da rimborsare';}
+ tournamentState(key:string):string{const rows=this.data.entries().filter(r=>r.tournament_key===key);if(!rows.length)return 'Nessuna iscrizione';const count=rows.filter(r=>r.reimbursed).length;return count===rows.length?'Rimborsato':count?'Parzialmente rimborsato':rows.some(r=>this.cartIds().has(r.id))?'In bozza rimborso':'Da rimborsare';}
  playerRows(key:string):Row[]{const map=new Map<number,Row>();for(const row of [...this.data.entries(),...this.emissions().flatMap(e=>e.items)]){if([playerKey(row.athlete1_name,row.athlete1_card),...(row.athlete2_name?[playerKey(row.athlete2_name,row.athlete2_card)]:[])].includes(key)&&!map.has(row.id))map.set(row.id,row);}return this.filter([...map.values()]);}
 }

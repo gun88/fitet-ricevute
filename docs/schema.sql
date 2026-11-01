@@ -96,6 +96,7 @@ CREATE TABLE {prefix}fitet_ricevute_carrello (
     society_code varchar(20) NOT NULL,
     entry_id bigint(20) unsigned NOT NULL,
     snapshot_json longtext NOT NULL,
+    notes text DEFAULT NULL,
     added_at datetime NOT NULL,
     PRIMARY KEY  (user_id,society_code,entry_id)
 ) ENGINE=InnoDB {charset};

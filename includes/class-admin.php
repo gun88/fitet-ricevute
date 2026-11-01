@@ -6,6 +6,7 @@ final class FR_Admin {
     public function __construct(private FR_Repository $repository) {}
 
     public function init(): void {
+        add_action('admin_post_fitet_ricevute_save_config', [$this, 'save_config']);
         add_action('admin_menu', [$this, 'menu']);
         add_action('admin_init', [$this, 'settings']);
         add_action('admin_enqueue_scripts', [$this, 'styles']);
@@ -45,6 +46,7 @@ final class FR_Admin {
         $config = FR_Settings::all();
         $extranet = FR_Extranet_Credentials::status();
         $signature = FR_Signature::snapshot();
+        $stamp = FR_Signature::snapshot('stamp');
         $fields = [
             'app_name' => ['Nome del portale', 'text'],
             'society_name' => ['Nome società', 'text'],
@@ -57,8 +59,10 @@ final class FR_Admin {
             <h1>FITET Ricevute — Configurazione</h1>
             <p><a class="button" href="<?php echo esc_url(home_url('/fitet-ricevute/')); ?>" target="_blank" rel="noopener">Apri il portale</a></p>
             <?php settings_errors(); ?>
-            <form method="post" action="options.php">
-                <?php settings_fields('fitet_ricevute'); ?>
+            <form method="post" enctype="multipart/form-data" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="fitet_ricevute_save_config">
+                <?php wp_nonce_field('fitet_ricevute_save_config'); ?>
+                <?php if(isset($_GET['config_saved'])): ?><div class="notice notice-success"><p>Configurazione salvata.</p></div><?php endif; ?>
                 <table class="form-table" role="presentation">
                     <tr><th scope="row">Portale attivo</th><td><label>
                         <input name="<?php echo esc_attr(FR_Settings::OPTION); ?>[enabled]" type="checkbox" value="1" <?php checked($config['enabled']); ?>> Consenti l’accesso al portale
@@ -71,28 +75,28 @@ final class FR_Admin {
                         <textarea class="large-text" rows="3" id="fr-login-message" name="<?php echo esc_attr(FR_Settings::OPTION); ?>[login_message]"><?php echo esc_textarea($config['login_message']); ?></textarea>
                     </td></tr>
                 </table>
-                <?php submit_button('Salva impostazioni'); ?>
-            </form>
+
             <h2>Firma nelle ricevute PDF</h2>
             <p>Carica una firma PNG o JPG (massimo 1 MB, 4096 × 4096 pixel). Per uno sfondo trasparente usa PNG.
             La firma viene inserita nelle nuove ricevute cumulative e individuali; quelle già emesse conservano la propria firma.</p>
             <?php if (isset($_GET['signature_saved'])): ?><div class="notice notice-success"><p>Firma delle ricevute aggiornata.</p></div><?php endif; ?>
             <?php if ($signature): ?><div class="fr-signature-preview"><img src="<?php echo esc_attr($signature['data_url']); ?>" alt="Anteprima firma delle ricevute"></div><?php else: ?><p>Nessuna firma caricata. Le ricevute avranno lo spazio per la firma manuale.</p><?php endif; ?>
-            <form method="post" enctype="multipart/form-data" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="fitet_ricevute_save_signature">
-                <?php wp_nonce_field('fitet_ricevute_save_signature'); ?>
+
                 <table class="form-table" role="presentation">
                     <tr><th><label for="fr-signature-file">Immagine firma</label></th><td><input type="file" id="fr-signature-file" name="signature_file" accept="image/png,image/jpeg,.png,.jpg,.jpeg"><p class="description">Lascia vuoto per conservare la firma attuale.</p></td></tr>
                     <?php if ($signature): ?><tr><th>Rimuovi firma</th><td><label><input type="checkbox" name="clear_signature" value="1"> Rimuovi la firma dalle nuove ricevute</label></td></tr><?php endif; ?>
                 </table>
-                <?php submit_button('Salva firma'); ?>
-            </form>
+            <h2>Timbro nelle ricevute PDF</h2>
+            <p>PNG o JPG fino a 1 MB, massimo 4096 × 4096 pixel. Il timbro viene affiancato alla firma nelle nuove ricevute.</p>
+            <?php if($stamp): ?><div class="fr-signature-preview"><img src="<?php echo esc_attr($stamp['data_url']); ?>" alt="Anteprima timbro delle ricevute"></div><?php endif; ?>
+            <table class="form-table" role="presentation">
+                <tr><th><label for="fr-stamp-file">Immagine timbro</label></th><td><input type="file" id="fr-stamp-file" name="stamp_file" accept="image/png,image/jpeg,.png,.jpg,.jpeg"><p class="description">Lascia vuoto per conservare il timbro attuale.</p></td></tr>
+                <?php if($stamp): ?><tr><th>Rimuovi timbro</th><td><label><input type="checkbox" name="clear_stamp" value="1"> Rimuovi il timbro dalle nuove ricevute</label></td></tr><?php endif; ?>
+            </table>
             <h2>Extranet FITeT</h2>
             <p>Credenziali della società per la ricerca automatica delle ricevute nell’extranet. I PDF vengono scaricati dai link pubblici.</p>
             <?php if (isset($_GET['extranet_saved'])): ?><div class="notice notice-success"><p>Credenziali extranet FITeT salvate.</p></div><?php endif; ?>
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="fitet_ricevute_save_extranet">
-                <?php wp_nonce_field('fitet_ricevute_save_extranet'); ?>
+
                 <table class="form-table" role="presentation">
                     <tr><th scope="row"><label for="fr-extranet-username">Username extranet FITeT</label></th><td>
                         <input id="fr-extranet-username" class="regular-text" name="extranet[username]" type="text" maxlength="255" autocomplete="off" autocapitalize="none" spellcheck="false" value="<?php echo esc_attr($extranet['username']); ?>">
@@ -106,13 +110,21 @@ final class FR_Admin {
                         <tr><th scope="row">Rimuovi password</th><td><label><input type="checkbox" name="extranet[clear_password]" value="1"> Rimuovi la password extranet FITeT salvata</label></td></tr>
                     <?php endif; ?>
                 </table>
-                <?php submit_button('Salva credenziali FITeT'); ?>
+                <?php submit_button('Salva configurazione'); ?>
             </form>
+<h2>Import/export dati</h2><p><a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fitet-ricevute-backup')); ?>">Importa / esporta dati</a></p>
             <h2>Funzionalità del portale</h2>
             <p>Sincronizza ricevute · Modifica prezzi tornei · Crea rimborsi</p>
             <p>Il portale gestisce ricevute, iscrizioni, prezzi, schede giocatore e ricevute di rimborso.</p>
         </div>
         <?php
+    }
+
+    public function save_config(): void {
+        $this->guard();check_admin_referer('fitet_ricevute_save_config');
+        try {FR_Settings::save_configuration(['settings'=>wp_unslash($_POST[FR_Settings::OPTION]??[]),'extranet'=>wp_unslash($_POST['extranet']??[]),'clear_signature'=>!empty($_POST['clear_signature']),'clear_stamp'=>!empty($_POST['clear_stamp'])],$_FILES);}
+        catch(Throwable $error){wp_die(esc_html($error instanceof RuntimeException?$error->getMessage():'Configurazione non salvata.'),'Configurazione non salvata',['response'=>400,'back_link'=>true]);}
+        wp_safe_redirect(admin_url('admin.php?page=fitet-ricevute&config_saved=1'));exit;
     }
 
     public function save_signature(): void {

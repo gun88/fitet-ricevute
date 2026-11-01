@@ -8,7 +8,7 @@
     <a routerLink="/gare" routerLinkActive="active">Gare</a>
     <a routerLink="/iscrizioni" routerLinkActive="active">Iscrizioni</a>
     <a routerLink="/rimborsi" routerLinkActive="active">Rimborsi Emessi</a>
-    <a routerLink="/carrello" routerLinkActive="active">Carrello <span class="cart-pill" [attr.aria-label]="portal.cart().length+' iscrizioni nel carrello'">{{portal.cart().length}}</span></a>
+    <a routerLink="/bozza-rimborso" routerLinkActive="active">Bozza rimborso <span class="cart-pill" [attr.aria-label]="portal.cart().length+' iscrizioni in bozza rimborso'">{{portal.cart().length}}</span></a>
   </nav>
   <div class="season-bar"><label>Stagione agonistica <select aria-label="Stagione agonistica" [ngModel]="portal.season()" (ngModelChange)="portal.setSeason($event)"><option value="latest">Ultima disponibile{{portal.seasons()[0]?' · '+portal.seasons()[0]:''}}</option>@for(season of portal.seasons();track season){<option [value]="season">{{season}}</option>}<option value="all">Tutte le stagioni</option></select></label></div>
   <main class="dashboard-main data-main">
@@ -28,5 +28,5 @@
     @if (data.job()?.errors?.length) { <div class="error-box"><strong>Ricevute da verificare</strong><ul>@for (item of data.job()!.errors; track item.receipt) { <li>Ricevuta {{ item.receipt }}: {{ item.message }}</li> }</ul></div> }
     <router-outlet />
   </main>
-  <footer class="dashboard-footer">FITET Ricevute · Versione 0.7.1</footer>
+  <footer class="dashboard-footer">FITET Ricevute · Versione 0.8.1</footer>
 </div>

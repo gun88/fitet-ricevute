@@ -1,6 +1,6 @@
 {
   "name": "fitet-ricevute",
-  "version": "0.7.1",
+  "version": "0.8.1",
   "private": true,
   "scripts": {
     "start": "ng serve --host 127.0.0.1",
