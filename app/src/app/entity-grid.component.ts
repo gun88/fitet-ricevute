@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, Injector, inject, effect, runInInjectionContext, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
-import { ColDef, GridApi } from 'ag-grid-community';
+import { ColDef, GridApi, StateUpdatedEvent, ColumnPinningState } from 'ag-grid-community';
 import { PortalService } from './portal.service';
 import { money, dateLabel, names, originLabel } from './format';
 import { TableView } from './table-preferences';
@@ -18,9 +18,9 @@ export class CartActionComponent {
  agInit(p:any){this.row=p.data;this.remove=!!p.remove;}refresh(p:any){this.agInit(p);return true;}
 }
 @Component({selector:'fr-entity-grid',imports:[AgGridAngular],template:`
- <div class="grid-toolbar"><label>Cerca nella tabella<input type="search" [attr.aria-label]="'Cerca '+label" [value]="view.search()" (input)="view.setSearch($any($event.target).value)"></label><button class="text-button" (click)="view.reset(api)">Azzera filtri e ordine</button>
- @if(kind==='entries' && !cartMode){<button class="secondary-button" [disabled]="!selected().length || portal.data.locked()" (click)="addSelected()">Aggiungi selezionate ({{selected().length}})</button>}</div>
- @if(view){<ag-grid-angular [id]="viewKey+'-grid'" class="main-grid" [theme]="theme" [rowData]="rows" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" (gridReady)="api=$event.api" [rowSelection]="selection" [selectionColumnDef]="selectionColumn" (selectionChanged)="selected.set($event.api.getSelectedRows())" [readOnlyEdit]="true" [singleClickEdit]="true" [stopEditingWhenCellsLoseFocus]="true" (cellEditRequest)="edit($event)" />}
+ <div class="grid-toolbar"><label class="grid-search">Cerca nella tabella<input type="search" [attr.aria-label]="'Cerca '+label" [value]="view.search()" (input)="view.setSearch($any($event.target).value)"></label><div class="grid-extra-filters"><ng-content select="[tableFilter]" /></div><div class="grid-toolbar-actions"><button class="text-button" (click)="view.reset(api)">Azzera filtri e ordine</button>
+ @if(kind==='entries' && !cartMode){<button class="secondary-button" [disabled]="!selected().length || portal.data.locked()" (click)="addSelected()">Aggiungi selezionate ({{selected().length}})</button>}</div></div>
+ @if(view){<ag-grid-angular [id]="viewKey+'-grid'" class="main-grid" [theme]="theme" [rowData]="rows" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [initialState]="view.initialState" (stateUpdated)="stateUpdated($event)" (gridReady)="ready($event.api)" (gridSizeChanged)="responsiveColumns()" [rowSelection]="selection" [selectionColumnDef]="selectionColumn" (selectionChanged)="selected.set($event.api.getSelectedRows())" [readOnlyEdit]="true" [singleClickEdit]="true" [stopEditingWhenCellsLoseFocus]="true" (cellEditRequest)="edit($event)" />}
 `})
 export class EntityGridComponent implements OnInit, OnChanges {
  @Input() rows:any[]=[];@Input() kind:'tournaments'|'races'|'entries'|'emissions'='entries';@Input() viewKey='entries';@Input() label='iscrizioni';@Input() cartMode=false;
@@ -29,6 +29,29 @@ export class EntityGridComponent implements OnInit, OnChanges {
  constructor(){effect(()=>{this.portal.cart();this.portal.data.entries();this.api?.refreshCells({force:true});});}
  readonly selectionColumn:any={pinned:'left',width:48,minWidth:48,maxWidth:48,resizable:false};
  view!:TableView;api?:GridApi;columns:ColDef<any>[]=[];selection:any;
+ private mobileColumns=false;private desktopPinning?:ColumnPinningState;
+ ready(api:GridApi){
+  this.api=api;
+  this.desktopPinning=this.view.initialState?.columnPinning||{leftColIds:api.getState().columnPinning?.leftColIds||[],rightColIds:this.columns.filter(col=>col.pinned==='right').map(col=>String(col.colId||col.field))};
+  this.responsiveColumns();
+ }
+ responsiveColumns(){
+  if(!this.api)return;
+  const mobile=window.innerWidth<=720;
+  if(mobile===this.mobileColumns)return;
+  if(mobile){
+   this.mobileColumns=true;
+   this.api.applyColumnState({state:this.api.getColumnState().filter(col=>col.pinned==='right').map(col=>({colId:col.colId,pinned:null}))});
+  }else{
+   this.mobileColumns=false;
+   this.api.applyColumnState({state:(this.desktopPinning?.rightColIds||[]).map(colId=>({colId,pinned:'right' as const}))});
+  }
+ }
+ stateUpdated(event:StateUpdatedEvent){
+  if(!this.mobileColumns&&window.innerWidth>720)this.desktopPinning=this.api?.getState().columnPinning||event.state.columnPinning||{leftColIds:[],rightColIds:[]};
+  this.view.updated(this.desktopPinning?{...event,state:{...event.state,columnPinning:this.desktopPinning}}:event);
+ }
+
  async addSelected(){await this.portal.changeCart(this.selected(),true);this.api?.deselectAll();this.selected.set([]);}
  ngOnChanges(changes:SimpleChanges){if(changes['rows']){this.selected.set([]);this.api?.deselectAll();}}
  edit(event:any){if(this.cartMode&&event.colDef.field==='refund_notes')void this.portal.updateLine(event.data,String(event.newValue??''));else void this.portal.data.price(event.data,event.newValue);}

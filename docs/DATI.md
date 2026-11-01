@@ -243,3 +243,13 @@ L’anteprima è legata all’admin, a un file temporaneo e al suo hash, con sca
 Durante il ripristino un blocco temporaneo sospende le API operative; vengono revocate le sessioni
 e cambiata la generazione dei dati per impedire la ripresa di job di sincronizzazione precedenti.
 Il backup non include localStorage né dati di altri plugin WordPress.
+
+
+## Layout 0.9.0
+
+Nessuna nuova tabella o modifica ai dati operativi. La stagione vuota è un valore esplicito nelle
+preferenze browser: restituisce elenchi vuoti e impedisce l’avvio della sincronizzazione dal frontend.
+Il valore salvato si ripristina prima di caricare i dati, evitando la visualizzazione transitoria
+dell’ultima stagione. Resta attiva la scelta iniziale dell’ultima disponibile per chi non ha preferenze.
+Il profilo `#/utente` usa i dati della sessione già autenticata, senza nuovi endpoint o campi personali.
+L’uscita dal profilo, dal menu desktop e dal menu mobile usa la stessa operazione di logout.

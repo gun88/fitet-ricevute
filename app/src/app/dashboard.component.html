@@ -1,32 +1,33 @@
 <div class="dashboard">
-  <header class="topbar">
-    <a class="brand compact" routerLink="/tornei"><span class="brand-mark" aria-hidden="true">fr<span>•</span></span><span>{{ settings()?.app_name || 'FITET Ricevute' }}</span></a>
-    <div class="user-menu"><span>{{ auth.user()?.display_name }}</span><button class="secondary-button" (click)="logout()" [disabled]="data.locked()">Esci</button></div>
-  </header>
-  <nav class="app-nav" aria-label="Navigazione principale">
-    <a routerLink="/tornei" routerLinkActive="active">Tornei</a>
-    <a routerLink="/gare" routerLinkActive="active">Gare</a>
-    <a routerLink="/iscrizioni" routerLinkActive="active">Iscrizioni</a>
-    <a routerLink="/rimborsi" routerLinkActive="active">Rimborsi Emessi</a>
-    <a routerLink="/bozza-rimborso" routerLinkActive="active">Bozza rimborso <span class="cart-pill" [attr.aria-label]="portal.cart().length+' iscrizioni in bozza rimborso'">{{portal.cart().length}}</span></a>
-  </nav>
-  <div class="season-bar"><label>Stagione agonistica <select aria-label="Stagione agonistica" [ngModel]="portal.season()" (ngModelChange)="portal.setSeason($event)"><option value="latest">Ultima disponibile{{portal.seasons()[0]?' · '+portal.seasons()[0]:''}}</option>@for(season of portal.seasons();track season){<option [value]="season">{{season}}</option>}<option value="all">Tutte le stagioni</option></select></label></div>
-  <main class="dashboard-main data-main">
-    @if (data.error()) { <p class="error-box" role="alert">{{ data.error() }}</p> }
-    @if (data.notice() && !data.job()?.done) { <p class="notice" role="status">{{ data.notice() }}</p> }
-    @if (data.loading()) { <p class="load-note" role="status">Caricamento dei dati…</p> }
-    @if (data.syncing() || data.job()) {
-      <div class="sync-progress notice">
-        @if (data.job()?.done && data.notice()) { <p class="sync-result" role="status">{{ data.notice() }}</p> }
-        <div class="sync-progress-label" role="status">
-          <span>@if (data.job()) { Ricevute elaborate: {{ data.job()!.processed }} / {{ data.job()!.total }} } @else { Accesso all’extranet e ricerca automatica delle ricevute… }</span>
-          @if (data.job()) { <strong>{{ data.syncProgress() }}%</strong> }
+  <header #appHeader class="topbar" [attr.role]="mobileOpen()?'dialog':null" [attr.aria-modal]="mobileOpen()?'true':null" [attr.aria-label]="mobileOpen()?'Menu principale':null">
+    <a class="brand compact" routerLink="/tornei" (click)="closeMenus()"><span class="brand-mark" aria-hidden="true">fr<span>•</span></span><span>{{ settings()?.app_name || 'FITET Ricevute' }}</span></a>
+    <button #menuToggle class="menu-toggle" type="button" aria-label="Menu principale" aria-controls="header-panel" [attr.aria-expanded]="mobileOpen()" (click)="toggleMobile()"><span></span><span></span><span></span></button>
+    <div #headerPanel id="header-panel" class="header-panel" [class.is-open]="mobileOpen()">
+      <nav class="app-nav" aria-label="Navigazione principale">
+        <a routerLink="/tornei" routerLinkActive="active" (click)="closeMenus()">Tornei</a>
+        <a routerLink="/gare" routerLinkActive="active" (click)="closeMenus()">Gare</a>
+        <a routerLink="/iscrizioni" routerLinkActive="active" (click)="closeMenus()">Iscrizioni</a>
+        <a routerLink="/rimborsi" routerLinkActive="active" (click)="closeMenus()">Rimborsi Emessi</a>
+        <a routerLink="/bozza-rimborso" routerLinkActive="active" (click)="closeMenus()">Bozza rimborso <span class="cart-pill" [attr.aria-label]="portal.cart().length+' iscrizioni in bozza rimborso'">{{portal.cart().length}}</span></a>
+      </nav>
+      <div class="header-controls">
+        <div class="season-control"><select aria-label="Stagione agonistica" [ngModel]="portal.season()" (ngModelChange)="changeSeason($event)"><option value="">- seleziona stagione -</option><option value="latest">{{portal.seasons()[0]?seasonLabel(portal.seasons()[0])+' · Ultima':'Ultima disponibile'}}</option>@for(season of portal.seasons();track season){<option [value]="season">{{seasonLabel(season)}}</option>}<option value="all">Tutte le stagioni</option></select></div>
+        <div #userArea class="user-menu">
+          <button #userToggle class="user-trigger" type="button" [attr.aria-expanded]="userOpen()" aria-controls="user-actions" (click)="userOpen.set(!userOpen())"><span class="user-name">{{ auth.user()?.display_name }}</span><span class="user-avatar" aria-hidden="true">{{initial()}}</span></button>
+          @if(userOpen()){
+            <div id="user-actions" class="user-dropdown"><span class="user-dropdown-heading">Utente</span><a routerLink="/utente" (click)="closeMenus()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>Profilo utente</a><button type="button" (click)="logout()" [disabled]="data.locked()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H4v18h5M14 7l5 5-5 5M8 12h11"/></svg>Log out</button></div>
+          }
+          <div class="mobile-user-actions"><a routerLink="/utente" (click)="closeMenus()"><span class="user-avatar" aria-hidden="true">{{initial()}}</span><span>{{ auth.user()?.display_name }}</span></a><button type="button" (click)="logout()" [disabled]="data.locked()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H4v18h5M14 7l5 5-5 5M8 12h11"/></svg>Log out</button></div>
         </div>
-        <progress max="100" [attr.value]="data.job() ? data.syncProgress() : null" aria-label="Avanzamento elaborazione ricevute">{{ data.syncProgress() }}%</progress>
       </div>
-    }
-    @if (data.job()?.errors?.length) { <div class="error-box"><strong>Ricevute da verificare</strong><ul>@for (item of data.job()!.errors; track item.receipt) { <li>Ricevuta {{ item.receipt }}: {{ item.message }}</li> }</ul></div> }
+    </div>
+  </header>
+  @if(mobileOpen()){<div class="menu-backdrop" aria-hidden="true" (click)="closeMenus(true)"></div>}
+  <main class="dashboard-main data-main" [attr.inert]="mobileOpen()?'':null">
+    @if (data.error()) { <p class="error-box" role="alert">{{ data.error() }}</p> }
+    @if (data.notice()) { <p class="notice" role="status">{{ data.notice() }}</p> }
+    @if (data.loading()) { <p class="load-note" role="status">Caricamento dei dati…</p> }
     <router-outlet />
   </main>
-  <footer class="dashboard-footer">FITET Ricevute · Versione 0.8.1</footer>
+  <footer class="dashboard-footer" [attr.inert]="mobileOpen()?'':null">FITET Ricevute · Versione 0.9.0</footer>
 </div>

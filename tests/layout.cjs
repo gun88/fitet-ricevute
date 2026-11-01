@@ -1,0 +1,62 @@
+const assert = require('node:assert/strict');
+const { mkdirSync } = require('node:fs');
+const { resolve } = require('node:path');
+const { chromium } = require(process.env.FR_PLAYWRIGHT_MODULE || '../app/node_modules/playwright');
+(async () => {
+ const browser=await chromium.launch({headless:true,...(process.env.FR_BROWSER_PATH?{executablePath:process.env.FR_BROWSER_PATH}:{})});
+ const context=await browser.newContext({viewport:{width:1600,height:1000}});
+ const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const out=resolve(__dirname,'screenshots');mkdirSync(out,{recursive:true});let checks=0;
+ const check=(value,label)=>{assert.ok(value,label);checks++;console.log('PASS '+label);};
+ const main=page.locator('main');const nav=page.getByRole('navigation',{name:'Navigazione principale'});
+ const season=page.getByRole('combobox',{name:'Stagione agonistica'});
+ const toggle=page.getByRole('button',{name:'Menu principale',exact:true});
+ const goto=async path=>{await page.goto('http://127.0.0.1:8095/fitet-ricevute/#/'+path);await page.locator('main h1').waitFor();};
+ try {
+  await page.goto('http://127.0.0.1:8095/fitet-ricevute/');await page.getByLabel('Username',{exact:true}).fill('fr-tester');await page.getByLabel('Password',{exact:true}).fill('FR-test-only-2026!');await page.getByRole('button',{name:'Accedi',exact:true}).click();await page.locator('#tournaments-grid .ag-row').first().waitFor();
+  check((await page.locator('.topbar').boundingBox()).height===64,'desktop header occupies a single compact row');
+  check(await nav.getByRole('link').count()===5&&await season.isVisible(),'desktop header contains navigation and season');
+  check(!await toggle.isVisible(),'desktop hamburger hidden');
+  const search=await main.getByRole('searchbox').boundingBox();const filter=await main.getByRole('checkbox',{name:'Mostra solo tornei con iscrizioni'}).boundingBox();
+  check(filter.x>search.x+search.width&&Math.abs(filter.y+filter.height/2-search.y-search.height/2)<12,'desktop checkbox beside table search');
+  check((await main.locator('h1').boundingBox()).y<115&&(await page.locator('#tournaments-grid').boundingBox()).y<300,'desktop content starts near the header');
+  await page.screenshot({path:resolve(out,'layout-tournaments-desktop.png'),fullPage:true,animations:'disabled'});
+  await season.selectOption('');check(await page.getByRole('button',{name:'Sincronizza ricevute',exact:true}).isDisabled(),'empty season disables synchronization');
+  await page.locator('#tournaments-grid .ag-overlay-no-rows-center').waitFor();check(await page.locator('#tournaments-grid .ag-row').count()===0,'empty season shows no tournament rows');
+  await page.reload();await main.locator('h1').waitFor();await page.waitForFunction(()=>document.querySelector('[aria-label="Stagione agonistica"]').value==='');check(await season.inputValue()===''&&await page.getByRole('button',{name:'Sincronizza ricevute',exact:true}).isDisabled(),'empty season selection survives reload');
+  await season.selectOption('latest');await page.locator('#tournaments-grid .ag-row').first().waitFor();
+  check(await season.locator('option[value="latest"]').innerText().then(t=>/\d{4}\/\d{2} · Ultima/.test(t)),'compact latest-season label');
+  await page.locator('.user-trigger').click();await page.getByRole('link',{name:'Profilo utente',exact:true}).waitFor();await page.keyboard.press('Escape');await page.locator('.user-dropdown').waitFor({state:'hidden'});check(await page.locator('.user-dropdown').count()===0,'Escape closes user menu');
+  await page.locator('.user-trigger').click();await main.locator('h1').click();await page.locator('.user-dropdown').waitFor({state:'hidden'});check(await page.locator('.user-dropdown').count()===0,'outside click closes user menu');
+  await page.locator('.user-trigger').click();await page.getByRole('link',{name:'Profilo utente',exact:true}).click();await main.getByRole('heading',{name:'Profilo utente',exact:true}).waitFor();
+  check((await main.innerText()).includes('fr-tester')&&await main.getByRole('button',{name:'Log out',exact:true}).isVisible(),'profile shows login username and logout');
+  for(const path of ['gare','iscrizioni','rimborsi','bozza-rimborso']){await goto(path);check((await page.locator('.topbar').boundingBox()).height===64&&(await main.locator('h1').boundingBox()).y<115,'shared compact layout: '+path);}
+  await goto('tornei');await page.setViewportSize({width:390,height:844});await nav.waitFor({state:'hidden'});await toggle.waitFor({state:'visible'});
+  check((await page.locator('.topbar').boundingBox()).height===60&&await toggle.isVisible()&&!await nav.isVisible()&&!await season.isVisible(),'mobile header only shows brand and hamburger');
+  const mobileSearch=await main.getByRole('searchbox').boundingBox();const mobileFilter=await main.getByRole('checkbox',{name:'Mostra solo tornei con iscrizioni'}).boundingBox();
+  check(mobileFilter.y+mobileFilter.height<mobileSearch.y,'mobile checkbox appears before search');
+  check(await page.locator('#tournaments-grid .ag-grid-pinned-right-cells .ag-cell').count()===0,'mobile actions do not cover tournament names');
+  check((await page.locator('#tournaments-grid').boundingBox()).y<420,'mobile table begins within first screen');
+  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile tournament page has no horizontal overflow');
+  await page.screenshot({path:resolve(out,'layout-tournaments-mobile.png'),fullPage:true,animations:'disabled'});
+  await toggle.click();await nav.waitFor({state:'visible'});await page.waitForFunction(()=>document.querySelector('.menu-toggle').getAttribute('aria-expanded')==='true');check(await toggle.getAttribute('aria-expanded')==='true'&&await page.locator('main').getAttribute('inert')!==null,'mobile drawer opens and background becomes inactive');
+  const panel=await page.locator('#header-panel').boundingBox();check(panel.width<390&&panel.width>=260,'drawer leaves part of underlying page visible');
+  check(await page.locator('.mobile-user-actions a').isVisible()&&await page.locator('.mobile-user-actions button').isVisible(),'mobile account actions visible in two columns');
+  await page.locator('.mobile-user-actions button').focus();await page.keyboard.press('Tab');check(await page.locator('.topbar .brand').evaluate(el=>el===document.activeElement),'keyboard focus stays in mobile menu');await page.keyboard.press('Shift+Tab');check(await page.locator('.mobile-user-actions button').evaluate(el=>el===document.activeElement),'reverse keyboard focus stays in mobile menu');
+  await page.screenshot({path:resolve(out,'layout-menu-mobile.png'),fullPage:true,animations:'disabled'});
+  await page.locator('.menu-backdrop').click({position:{x:380,y:100}});await page.waitForFunction(()=>document.querySelector('.menu-toggle').getAttribute('aria-expanded')==='false');check(await toggle.getAttribute('aria-expanded')==='false','outside backdrop closes drawer');
+  await toggle.click();await page.keyboard.press('Escape');await page.waitForFunction(()=>document.querySelector('.menu-toggle').getAttribute('aria-expanded')==='false');check(await toggle.getAttribute('aria-expanded')==='false','Escape closes mobile drawer');
+  await toggle.click();await toggle.click();await page.waitForFunction(()=>document.querySelector('.menu-toggle').getAttribute('aria-expanded')==='false');check(await toggle.getAttribute('aria-expanded')==='false','hamburger closes mobile drawer');
+  await toggle.click();await nav.getByRole('link',{name:'Gare',exact:true}).click();await main.getByRole('heading',{name:'Gare',exact:true}).waitFor();await page.waitForFunction(()=>document.querySelector('.menu-toggle').getAttribute('aria-expanded')==='false');check(await toggle.getAttribute('aria-expanded')==='false','page navigation closes drawer');
+  await toggle.click();await season.selectOption('');await page.waitForFunction(()=>document.querySelector('.menu-toggle').getAttribute('aria-expanded')==='false');check(await toggle.getAttribute('aria-expanded')==='false','season selection closes drawer');
+  await toggle.click();await season.selectOption('latest');
+  await toggle.click();await page.locator('.mobile-user-actions a').click();await main.getByRole('heading',{name:'Profilo utente',exact:true}).waitFor();await page.waitForFunction(()=>document.querySelector('.menu-toggle').getAttribute('aria-expanded')==='false');check(await toggle.getAttribute('aria-expanded')==='false','mobile account action opens profile and closes menu');
+  for(const path of ['tornei','gare','iscrizioni','rimborsi','bozza-rimborso','utente']){await goto(path);check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile page fits viewport: '+path);}
+  await page.setViewportSize({width:1280,height:900});check(await nav.isVisible()&&!await toggle.isVisible(),'desktop header restored after resizing');
+  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'1280px header fits viewport');
+  await page.setViewportSize({width:320,height:740});await goto('tornei');check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'320px layout fits viewport');
+  await toggle.click();await page.locator('.mobile-user-actions button').click();await page.getByRole('button',{name:'Accedi',exact:true}).waitFor();check(!await page.locator('body').evaluate(el=>el.classList.contains('fr-menu-open')),'mobile logout completes and releases scroll lock');
+  check(errors.length===0,'no uncaught browser errors: '+errors.join('; '));
+  console.log(checks+' responsive layout checks passed.');
+ } finally { await context.close();await browser.close(); }
+})().catch(e=>{console.error(e);process.exit(1);});

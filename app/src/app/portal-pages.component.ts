@@ -8,10 +8,15 @@ import { errorMessage } from './auth.service';
 import { money, dateLabel } from './format';
 @Component({selector:'fr-portal-page',imports:[EntityGridComponent,RouterLink],template:`
  <div class="page-heading"><div><h1>{{title}}</h1><p class="dashboard-subtitle">{{subtitle}}</p></div>
- @if(kind==='tournaments'){<div class="sync-controls"><button class="sync-button" [disabled]="portal.data.locked()" (click)="sync()">{{portal.data.syncing()?'Sincronizzazione…':'Sincronizza ricevute'}}</button><span class="last-sync">Ultima sincronizzazione: {{portal.data.lastSyncLabel()}}</span></div>}</div>
- @if(kind==='tournaments'||kind==='races'){<label class="check-field"><input type="checkbox" [checked]="onlyEntries()" (change)="setOnly($any($event.target).checked)">Mostra solo {{kind==='tournaments'?'tornei':'gare'}} con iscrizioni</label>}
+ @if(kind==='tournaments'){<div class="sync-controls"><button class="sync-button" [disabled]="portal.data.locked()||portal.season()===''" (click)="sync()">{{portal.data.syncing()?'Sincronizzazione…':'Sincronizza ricevute'}}</button><span class="last-sync">Ultima sincronizzazione: {{portal.data.lastSyncLabel()}}</span></div>}</div>
+ @if(kind==='tournaments' && (portal.data.syncing() || portal.data.job())){
+  <div class="sync-progress notice"><div class="sync-progress-label" role="status"><span>@if(portal.data.job()){Ricevute elaborate: {{portal.data.job()!.processed}} / {{portal.data.job()!.total}}}@else{Accesso all’extranet e ricerca automatica delle ricevute…}</span>@if(portal.data.job()){<strong>{{portal.data.syncProgress()}}%</strong>}</div><progress max="100" [attr.value]="portal.data.job()?portal.data.syncProgress():null" aria-label="Avanzamento elaborazione ricevute"></progress></div>
+ }
+ @if(kind==='tournaments' && portal.data.job()?.errors?.length){<div class="error-box"><strong>Ricevute da verificare</strong><ul>@for(item of portal.data.job()!.errors;track item.receipt){<li>Ricevuta {{item.receipt}}: {{item.message}}</li>}</ul></div>}
  @if(query()?.get('torneo')||query()?.get('gara')){<p class="filter-context">Filtro: {{contextName()}} <a [routerLink]="kind==='races'?'/gare':'/iscrizioni'">Rimuovi filtro di navigazione</a></p>}
- <fr-entity-grid [kind]="kind" [rows]="rows()" [viewKey]="kind" [label]="title" />
+ <fr-entity-grid [kind]="kind" [rows]="rows()" [viewKey]="kind" [label]="title">
+  @if(kind==='tournaments'||kind==='races'){<label tableFilter class="check-field"><input type="checkbox" [checked]="onlyEntries()" (change)="setOnly($any($event.target).checked)">Mostra solo {{kind==='tournaments'?'tornei':'gare'}} con iscrizioni</label>}
+ </fr-entity-grid>
 `})
 export class PortalPageComponent {
  readonly portal=inject(PortalService);private readonly route=inject(ActivatedRoute);readonly query=toSignal(this.route.queryParamMap);
@@ -29,7 +34,7 @@ export class PortalPageComponent {
   const tournament=this.query()?.get('torneo'),race=this.query()?.get('gara');
   if(tournament)rows=rows.filter(r=>r.tournament_key===tournament);if(race)rows=rows.filter(r=>String(r.race_id||r.id)===race);return rows;
  });
- async sync(){try{await this.portal.data.synchronize();await this.portal.refresh();}catch(error){this.portal.data.error.set(errorMessage(error));}}
+ async sync(){if(this.portal.season()==='')return;try{await this.portal.data.synchronize();await this.portal.refresh();}catch(error){this.portal.data.error.set(errorMessage(error));}}
 }
 @Component({selector:'fr-portal-detail',imports:[EntityGridComponent,RouterLink,FormsModule],template:`
  <div class="page-heading"><div><h1>{{title()}}</h1><p class="dashboard-subtitle">{{kind==='tournament'?'Dettaglio torneo':kind==='race'?'Dettaglio gara':kind==='player'?'Dettaglio giocatore':'Dettaglio rimborso'}}</p></div><a class="secondary-button" [routerLink]="kind==='emission'?'/rimborsi':'/tornei'">Torna all’elenco</a></div>

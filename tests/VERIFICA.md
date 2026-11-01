@@ -282,3 +282,29 @@ Suite attuali: `admin-backup.php` e `admin-ui.cjs`, con `admin-ui-fixture.php` p
 Le suite UI storiche `portal.cjs` e `signature.cjs` mantengono i flussi precedenti alla 0.8.1.
 `signature-fixtures.py` genera firma e timbro sintetici; `signature-pdf.cjs` genera anche il PDF
 con 100 righe di note per ispezione con pypdf/Poppler.
+
+
+## Aggiornamento 0.9.0 — 1 novembre 2026
+
+Layout riorganizzato sui cinque mockup locali, conservando colori e caratteri dell’app.
+- **43 controlli browser del layout**: barra desktop unica, ricerca/checkbox affiancate, stagione
+  vuota senza tornei e sincronizzazione disabilitata, scelta conservata al reload, menu utente e
+  profilo, intestazione condivisa, vista mobile compatta, drawer con sfondo inattivo, azioni utente
+  affiancate, focus tastiera trattenuto nel menu, chiusura via hamburger/Escape/sfondo/navigazione/
+  selezione stagione, logout, nessun overflow delle pagine a 390 px e verifica a 320/1280 px.
+- **3 controlli mirati delle preferenze**: prima visita da 320 px, azioni scorrevoli su mobile,
+  ripristino colonne fisse sul desktop e conservazione della ricerca dopo reload.
+- **29 controlli configurazione/backup/bozze/stampa** ripetuti: note, firma/timbro storici,
+  emissione, stampa nelle tre modalità, backup completo e conservazione delle credenziali.
+- Corretta l’assegnazione della società nella bozza usando uno stato reattivo: il pulsante di
+  emissione si aggiorna al termine del caricamento, senza richiedere un’altra interazione utente.
+- Build Angular production e lint del bootstrap PHP riusciti; restano i warning di ottimizzazione
+  delle dipendenze opzionali jsPDF. Nessuna modifica al modello dati o alle API backend.
+- Controllate visivamente le anteprime di Tornei desktop/mobile e del menu mobile; su mobile
+  le colonne Azioni non coprono più il nome del torneo. Gli screenshot sono in tests/screenshots,
+  esclusi dai pacchetti distribuiti.
+
+Suite: `node tests/layout.cjs` e `node tests/layout-pinning.cjs`; per le stagioni fittizie usare
+`php tests/portal-fixture.php` e ripristinare con `php tests/portal-fixture.php clean`.
+Per configurazioni ed emissioni resta `admin-ui.cjs` con setup/ripristino `admin-ui-fixture.php`.
+Verifiche nel WordPress isolato con SQLite, account e immagini fittizi; dati di prova ripristinati.

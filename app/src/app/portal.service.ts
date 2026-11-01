@@ -33,9 +33,10 @@ export class PortalService {
  });
  preferenceKey(name:string){return 'fr:portal:'+encodeURIComponent(config.apiUrl)+':'+this.auth.user()?.id+':'+name;}
  private seasonKey(){return this.preferenceKey('season');}
- setSeason(value:string){if(!/^(latest|all|\d{4}\/\d{4})$/.test(value))return;this.season.set(value);try{localStorage.setItem(this.seasonKey(),value);}catch{}}
- filter<T extends {tournament_date:string}>(rows:T[]):T[]{return this.selectedSeason()==='all'?rows:rows.filter(r=>seasonFor(r.tournament_date)===this.selectedSeason());}
- async load(){try{this.setSeason(localStorage.getItem(this.seasonKey())||'latest');}catch{}await this.refresh();}
+ setSeason(value:string){if(value!==''&&!/^(latest|all|\d{4}\/\d{4})$/.test(value))return;this.season.set(value);try{localStorage.setItem(this.seasonKey(),value);}catch{}}
+ filter<T extends {tournament_date:string}>(rows:T[]):T[]{return this.selectedSeason()===''?[]:this.selectedSeason()==='all'?rows:rows.filter(r=>seasonFor(r.tournament_date)===this.selectedSeason());}
+ restoreSeason(){try{this.setSeason(localStorage.getItem(this.seasonKey())??'latest');}catch{}}
+ async load(){this.restoreSeason();await this.refresh();}
  async refresh(){
    const revision=++this.revision;
    const cart=await firstValueFrom(this.http.get<{items:any[]}>(apiUrl('carrello')));if(revision===this.revision)this.cart.set(cart.items.map(normal));

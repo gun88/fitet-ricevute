@@ -18,6 +18,7 @@ bootstrapApplication(AppComponent, {
       { path: 'login', component: LoginComponent, title: 'Accedi · FITET Ricevute' },
       { path: '', component: DashboardComponent, canActivate: [authGuard], children: [
         { path: '', pathMatch: 'full', redirectTo: 'tornei' },
+        { path: 'utente', loadComponent:()=>import('./app/user.component').then(m=>m.UserComponent), title:'Profilo utente · FITET Ricevute' },
         { path: 'prezzi', pathMatch:'full', redirectTo:'gare' },
         { path: 'tornei', data:{kind:'tournaments'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalPageComponent), title:'Tornei · FITET Ricevute' },
         { path: 'gare', data:{kind:'races'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalPageComponent), title:'Gare · FITET Ricevute' },

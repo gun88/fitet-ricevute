@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import { PortalService, ReceiptOptions } from './portal.service';
-import { AuthService } from './auth.service';
+import { AuthService, errorMessage } from './auth.service';
 import { EntityGridComponent } from './entity-grid.component';
 import { money } from './format';
 import { athleteSummary, pendingTotal } from './refund-model';
@@ -18,7 +18,7 @@ import { TableView } from './table-preferences';
   <div class="recap-totals"><div><span>Iscrizioni</span><strong>{{portal.cartRows().length}}</strong></div><div><span>Totale</span><strong>{{money(total())}}</strong></div></div>
   @if(invalid()){<p class="error-box">Ci sono quote già rimborsate, non più disponibili o senza prezzo. Rimuovile o aggiorna i prezzi prima di emettere.</p>}
   <section class="refund-settings" aria-label="Impostazioni rimborso">
-   <p>Società: <strong>{{options.issuer||'Da configurare in wp-admin'}}</strong></p>
+   <p>Società: <strong>{{issuer()||'Da configurare in wp-admin'}}</strong></p>
    <label>Data ricevuta<input type="date" name="date" [(ngModel)]="options.date"></label>
 
    <label>Ripartizione doppi<select [ngModel]="allocation()" (ngModelChange)="allocation.set($event)" aria-label="Ripartizione doppi"><option value="half">Metà per atleta</option><option value="first">Tutta al primo atleta</option><option value="second">Tutta al secondo atleta</option></select></label>
@@ -27,11 +27,12 @@ import { TableView } from './table-preferences';
   <h2>Recap per atleta</h2>
   <ag-grid-angular id="cart-athletes-grid" class="athlete-grid" [theme]="theme" [rowData]="athletes()" [columnDefs]="athleteColumns" [defaultColDef]="defaults" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" />
   <p class="grid-help">Emetti registra il rimborso e segna le quote come rimborsate. Dopo l’emissione scegli come stampare le ricevute dal dettaglio del rimborso. Vengono emesse solo le iscrizioni della stagione selezionata; le altre rimangono nella bozza rimborso.</p>
-  <div class="issue-footer"><span>{{money(total())}}</span><button class="sync-button" [disabled]="portal.data.locked()||invalid()||!options.issuer.trim()||!options.date" (click)="emit()">{{portal.data.busy()?'Emissione…':'Emetti rimborsi'}}</button></div>
+  <div class="issue-footer"><span>{{money(total())}}</span><button class="sync-button" [disabled]="portal.data.locked()||invalid()||!issuer().trim()||!options.date" (click)="emit()">{{portal.data.busy()?'Emissione…':'Emetti rimborsi'}}</button></div>
  }
 `})
 export class CartComponent implements OnInit {
  readonly portal=inject(PortalService);private readonly auth=inject(AuthService);private readonly router=inject(Router);readonly money=money;
+ readonly issuer=signal('');
  readonly allocation=signal<'half'|'first'|'second'>('half');readonly lastEmission=signal<number|null>(null);
  readonly total=computed(()=>pendingTotal(this.portal.cartRows()));
  readonly invalid=computed(()=>this.total()===null||this.portal.cartRows().some(r=>r.reimbursed||(r as any).stale));
@@ -40,10 +41,10 @@ export class CartComponent implements OnInit {
  readonly athleteColumns:any[]=[{field:'name',headerName:'Atleta',flex:2,minWidth:220},{field:'card',headerName:'Tessera'},{field:'quotes',headerName:'Iscrizioni'},{field:'pending_cents',headerName:'Da rimborsare',valueFormatter:(p:any)=>money(p.value)}];
  options:ReceiptOptions={issuer:'',date:new Date().toLocaleDateString('en-CA'),notes:'',format:'total',allocation:'half'};
  private requestKey=crypto.randomUUID().replaceAll('-','');
- async ngOnInit(){try{await this.portal.refresh();this.options.issuer=(await this.auth.publicConfig()).society_name;}catch{}}
+ async ngOnInit(){try{const [config]=await Promise.all([this.auth.publicConfig(),this.portal.refresh()]);this.issuer.set(config.society_name);}catch(error){this.portal.data.error.set(errorMessage(error));}}
  async emit(){await this.portal.data.perform(async()=>{
    const rows=this.portal.cartRows();if(!rows.length||this.invalid())throw new Error('Verifica le quote nella bozza rimborso.');
-   const options={...this.options,issuer:this.options.issuer.trim(),allocation:this.allocation()};
+   const options={...this.options,issuer:this.issuer().trim(),allocation:this.allocation()};
    let emission;try{emission=await this.portal.issue(rows,options,this.requestKey);}catch(error){await this.portal.refresh();await this.portal.data.refresh();throw error;}
    this.lastEmission.set(emission.id);this.requestKey=crypto.randomUUID().replaceAll('-','');
    await this.portal.data.refresh();await this.portal.refresh();this.portal.data.notice.set('Rimborso #'+emission.id+' emesso e registrato.');await this.router.navigateByUrl('/rimborsi/'+emission.id);

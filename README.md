@@ -1,6 +1,6 @@
 # FITET Ricevute
 
-Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.8.1**.
+Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.9.0**.
 
 ## Pagine del portale
 
@@ -20,7 +20,10 @@ Le pagine dettaglio di torneo, gara, rimborso e giocatore riusano le stesse tabe
 Il dettaglio giocatore mostra iscrizioni e rimborsi; è raggiungibile dai nomi degli atleti.
 La directory giocatori resta raggiungibile su `#/giocatori`. Il vecchio URL `#/prezzi` reindirizza a Gare; `#/carrello` apre Bozza rimborso.
 
-La select **Stagione agonistica** è unica per il frontend e salvata per sito/account nel browser.
+La select della stagione è unica per il frontend, nell’intestazione desktop o nel menu mobile,
+e salvata per sito/account nel browser. Non ha un’etichetta visibile, ma mantiene il nome accessibile.
+La voce **- seleziona stagione -** svuota le viste e disabilita il pulsante di sincronizzazione;
+anche questa scelta viene conservata. Le etichette delle stagioni sono compatte, per esempio 2026/27.
 Le stagioni vanno dal 1° luglio al 30 giugno; “Ultima disponibile” sceglie la più recente nei dati.
 La stagione filtra elenchi, dettagli e bozza rimborso. Le emissioni conservano sempre il totale originale:
 nel dettaglio l'elenco segue il filtro globale, mentre il PDF riproduce l'emissione completa.
@@ -28,6 +31,22 @@ nel dettaglio l'elenco segue il filtro globale, mentre il PDF riproduce l'emissi
 AG Grid Community: testi selezionabili, filtri, ordinamento, ricerca e preferenze per tabella/utente/browser.
 100 righe iniziali, con precedenza alle preferenze già salvate. Layout responsive e scorrimento interno.
 La barra di sincronizzazione e la data dell'ultimo completamento riuscito restano nella pagina Tornei.
+
+## Intestazione e spazi delle pagine
+
+Su desktop, logo, nome e navigazione sono a sinistra; stagione, nome e avatar dell’utente a destra,
+in un’unica barra. Il menu del nome/avatar apre **Profilo utente** e **Log out**.
+La pagina `#/utente` mostra nome, username di accesso e pulsante di uscita.
+
+Su mobile e tablet la barra mostra logo/nome e hamburger. Il menu scorre da sinistra e lascia visibile
+una parte oscurata della pagina. Contiene navigazione, stagione e due azioni utente affiancate.
+Si chiude dopo la scelta di una pagina o stagione, premendo hamburger, Escape o l’area oscurata.
+Lo sfondo resta inattivo e la navigazione da tastiera resta nel menu finché è aperto.
+
+Le pagine condividono margini e intestazioni compatti. In Tornei e Gare il filtro con iscrizioni è
+accanto alla ricerca su desktop e sopra di essa su mobile. L’ultima sincronizzazione rimane vicina
+al pulsante; avanzamento ed errori della sincronizzazione compaiono nella pagina Tornei.
+Le azioni fisse a destra nelle griglie diventano scorrevoli su mobile per lasciare visibili i dati.
 
 ## Bozza rimborso, emissione e stampa
 
@@ -118,6 +137,8 @@ Al termine `php tests/admin-ui-fixture.php clean` ripristina i dati fittizi.
 `php tests/admin-backup.php` verifica salvataggio unico, note e backup/ripristino completo.
 Le suite browser `portal.cjs` e `signature.cjs` descrivono i flussi precedenti alla 0.8.1;
 la suite corrente per configurazione, backup, bozza e stampa è `admin-ui.cjs`.
+`node tests/layout.cjs` verifica intestazione, stagioni, profilo e menu responsive; usa
+`portal-fixture.php` per preparare/ripristinare le stagioni fittizie.
 `FR_PLAYWRIGHT_MODULE` e `FR_BROWSER_PATH` possono indicare Playwright e Chrome locali.
 Nessuna credenziale reale viene salvata nei sorgenti o negli archivi distribuiti.
 
