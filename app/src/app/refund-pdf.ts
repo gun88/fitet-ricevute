@@ -5,7 +5,9 @@ import type { Row } from './data.service';
 import { dateLabel, names } from './format';
 import { Allocation, athleteSummary } from './refund-model';
 
-interface Options { issuer: string; date: string; notes: string; format: 'total' | 'athletes' | 'both'; allocation: Allocation }
+import type { SignatureImage } from './portal.service';
+
+interface Options { signature?: SignatureImage | null; issuer: string; date: string; notes: string; format: 'total' | 'athletes' | 'both'; allocation: Allocation }
 const euros = (cents: number) => new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(cents / 100) + ' EUR';
 const filename = (value: string) => value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-|-$/g, '').slice(0, 90) || 'atleta';
 let fontBase64 = '';
@@ -60,6 +62,12 @@ function documentPdf(rows: string[][], total: number, options: Options, benefici
   doc.setTextColor(75,92,79);
   if (lines.length) { doc.text(lines,18,y); y += lines.length*4.5+9; }
   doc.text('Firma per ricevuta',18,y+4); doc.setDrawColor(155,171,158); doc.line(18,y+20,90,y+20);
+  if (options.signature) {
+    const signature=options.signature;
+    const scale=Math.min(68/signature.width,13/signature.height);
+    const width=signature.width*scale,height=signature.height*scale;
+    doc.addImage(signature.data_url,signature.format,20+(68-width)/2,y+6+(13-height)/2,width,height);
+  }
   const pages = doc.getNumberOfPages();
   for (let page=1;page<=pages;page++) {
     doc.setPage(page); doc.setFont('NotoSans','normal'); doc.setFontSize(8); doc.setTextColor(110,125,113);
@@ -86,14 +94,19 @@ export function buildRefundFiles(rows: Row[], options: Options): Record<string, 
   return files;
 }
 
-export async function downloadRefunds(rows: Row[], options: Options): Promise<void> {
+export async function prepareRefundDownload(rows: Row[], options: Options): Promise<() => void> {
   await loadFont();
   const files = buildRefundFiles(rows,options);
   let content: Uint8Array; let name: string; let type: string;
   if (options.format === 'total') { name = Object.keys(files)[0]; content = files[name]; type = 'application/pdf'; }
   else { name = 'rimborsi-'+options.date+'.zip'; content = zipSync(files,{level:6}); type = 'application/zip'; }
   const blob = new Blob([content.slice().buffer as ArrayBuffer],{type});
+  return () => {
   const url = URL.createObjectURL(blob); const link = document.createElement('a');
   link.href=url; link.download=name; document.body.append(link); link.click(); link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),60000);
+  };
+}
+export async function downloadRefunds(rows: Row[], options: Options): Promise<void> {
+  (await prepareRefundDownload(rows, options))();
 }

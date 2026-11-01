@@ -17,12 +17,18 @@ bootstrapApplication(AppComponent, {
     provideRouter([
       { path: 'login', component: LoginComponent, title: 'Accedi · FITET Ricevute' },
       { path: '', component: DashboardComponent, canActivate: [authGuard], children: [
-        { path: '', pathMatch: 'full', redirectTo: 'prezzi' },
-        { path: 'prezzi', loadComponent: () => import('./app/prices.component').then(m => m.PricesComponent), title: 'Prezzi tornei · FITET Ricevute' },
-        { path: 'iscrizioni', loadComponent: () => import('./app/entries.component').then(m => m.EntriesComponent), title: 'Iscrizioni · FITET Ricevute' },
-        { path: 'giocatori', loadComponent: () => import('./app/players.component').then(m => m.PlayersComponent), title: 'Giocatori · FITET Ricevute' },
-        { path: 'giocatori/:key', loadComponent: () => import('./app/player.component').then(m => m.PlayerComponent), title: 'Giocatore · FITET Ricevute' },
-        { path: 'rimborsi', loadComponent: () => import('./app/refunds.component').then(m => m.RefundsComponent), title: 'Emissione rimborso · FITET Ricevute' }
+        { path: '', pathMatch: 'full', redirectTo: 'tornei' },
+        { path: 'prezzi', pathMatch:'full', redirectTo:'gare' },
+        { path: 'tornei', data:{kind:'tournaments'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalPageComponent), title:'Tornei · FITET Ricevute' },
+        { path: 'gare', data:{kind:'races'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalPageComponent), title:'Gare · FITET Ricevute' },
+        { path: 'iscrizioni', data:{kind:'entries'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalPageComponent), title:'Iscrizioni · FITET Ricevute' },
+        { path: 'rimborsi', data:{kind:'emissions'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalPageComponent), title:'Rimborsi Emessi · FITET Ricevute' },
+        { path: 'carrello', loadComponent:()=>import('./app/cart.component').then(m=>m.CartComponent), title:'Carrello · FITET Ricevute' },
+        { path: 'tornei/:id', data:{kind:'tournament'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalDetailComponent), title:'Torneo · FITET Ricevute' },
+        { path: 'gare/:id', data:{kind:'race'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalDetailComponent), title:'Gara · FITET Ricevute' },
+        { path: 'rimborsi/:id', data:{kind:'emission'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalDetailComponent), title:'Rimborso · FITET Ricevute' },
+        { path: 'giocatori', loadComponent:()=>import('./app/players.component').then(m=>m.PlayersComponent), title:'Giocatori · FITET Ricevute' },
+        { path: 'giocatori/:key', data:{kind:'player'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalDetailComponent), title:'Giocatore · FITET Ricevute' }
       ] },
       { path: '**', redirectTo: '' }
     ], withHashLocation())

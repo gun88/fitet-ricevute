@@ -167,3 +167,50 @@ Il file `.htaccess` blocca l'accesso diretto ai PDF su Apache; `web.config` lo b
 Su Nginx va applicato nel server block un `deny all` alla location
 `/wp-content/uploads/fitet-ricevute/ricevute-pdf/` (adattandola a eventuali percorsi uploads personalizzati).
 Il plugin non offre per ora un download dei PDF originali dal frontend.
+
+
+## Ristrutturazione 0.7.0 — 1 novembre 2026
+
+Il frontend raggruppa `gare` per `tournament_key` per mostrare una sola riga per torneo.
+I segnaposto `race_kind=empty` partecipano all'elenco tornei ma non a quello gare.
+Le gare/iscrizioni possono essere circoscritte con i parametri di navigazione `torneo` e `gara`.
+Una stagione globale, salvata per account/sito nel browser, si applica alle viste e ai dettagli.
+
+Due nuove tabelle operative, separate dalle fonti: `carrello` (PK utente/società/iscrizione)
+ed `emissioni` (registro con chiave idempotente utente/società/richiesta, data UTC, totale,
+snapshot JSON delle iscrizioni e opzioni dei documenti). Lo snapshot conserva i prezzi applicati
+e i riferimenti parent per mantenere leggibile lo storico anche dopo sincronizzazioni.
+Il carrello conserva un fallback dei dati per consentire la rimozione di righe divenute inattive.
+Il suo aggiornamento è serializzato per account; emissioni serializzate e salvate in transazione.
+
+`GET /carrello`: carrello del chiamante nella società configurata.
+`POST /carrello {ids}`: aggiunta idempotente di quote attive non rimborsate, massimo 1000.
+`DELETE /carrello {ids}`: rimozione solo dal proprio carrello.
+`GET /emissioni?page=N`: registro società, 50 documenti per pagina.
+`GET /emissioni/{id}`: snapshot immutabile nella società corrente.
+`POST /emissioni {ids,prices,options,request_key}`: crea l'emissione, marca le quote rimborsate,
+rimuove le quote dal carrello. `prices` deve coincidere con i prezzi effettivi riletti sul server;
+`request_key` è un token casuale esadecimale di 32 caratteri, unico per utente/società.
+Il riutilizzo della stessa chiave restituisce la stessa emissione, senza doppio pagamento.
+
+Tutti i nuovi endpoint richiedono sessione; le scritture anche origine valida e CSRF.
+Il carrello di un altro utente non è leggibile/modificabile. Il registro dei rimborsi della società
+è condiviso tra gli utenti autorizzati del portale, come gli altri dati della società.
+`created_at` è UTC, reso in fuso locale nel browser. La data stampata sulla ricevuta è distinta.
+
+I documenti già marcati rimborsati prima della 0.7.0 non vengono trasformati retroattivamente in
+emissioni con data ipotizzata. Lo stato operativo resta valido e ne impedisce l'inserimento nel carrello.
+La vecchia API di marcatura non scrive lo storico delle emissioni. I PDF restano generati sul client;
+preparazione PDF prima del commit, download dopo la risposta, rigenerazione dal registro in caso di interruzione.
+
+## Firma 0.7.1
+
+Opzione privata `fitet_ricevute_signature`, autoload disattivato: data URI PNG/JPEG, SHA-256,
+dimensioni e formato. Nessun file pubblico o URL esterno. Caricamento admin con capability e nonce;
+limiti 1 MB e 4096 × 4096, validazione MIME effettivo/dimensioni; SVG e file non immagine esclusi.
+`GET /firma` richiede sessione e restituisce `signature` oppure null; il config pubblico non la include.
+Il client prepara i PDF con la firma corrente e invia solo il suo hash all'emissione. Il server confronta
+l'hash e salva in `options_json.signature` la propria copia canonica, non l'immagine inviata dal client.
+Il registro paginato omette `data_url`; il dettaglio autenticato restituisce lo snapshot completo.
+Le vecchie opzioni senza `signature` vengono interpretate come assenza di firma, mai come firma attuale.
+La disinstallazione elimina la firma configurata, conservando i dati delle emissioni come il resto dello storico.

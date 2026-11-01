@@ -4,7 +4,7 @@ import { AllCommunityModule, ColDef, ICellRendererParams, ModuleRegistry, provid
 import { Row } from './data.service';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-provideGlobalGridOptions({ localeText: {
+provideGlobalGridOptions({ enableCellTextSelection: true, ensureDomOrder: true, localeText: {
   page: 'Pagina', more: 'altro', to: 'a', of: 'di', next: 'Successiva', last: 'Ultima', first: 'Prima', previous: 'Precedente', pageSizeSelectorLabel: 'Righe per pagina:',
   loadingOoo: 'Caricamento…', noRowsToShow: 'Nessuna riga da mostrare', noMatchingRows: 'Nessuna riga corrispondente', searchOoo: 'Cerca…', blanks: '(Vuote)',
   filterOoo: 'Filtra…', equals: 'Uguale a', notEqual: 'Diverso da', empty: 'Scegli un filtro',

@@ -1,14 +1,16 @@
 <div class="dashboard">
   <header class="topbar">
-    <a class="brand compact" routerLink="/prezzi"><span class="brand-mark" aria-hidden="true">fr<span>•</span></span><span>{{ settings()?.app_name || 'FITET Ricevute' }}</span></a>
+    <a class="brand compact" routerLink="/tornei"><span class="brand-mark" aria-hidden="true">fr<span>•</span></span><span>{{ settings()?.app_name || 'FITET Ricevute' }}</span></a>
     <div class="user-menu"><span>{{ auth.user()?.display_name }}</span><button class="secondary-button" (click)="logout()" [disabled]="data.locked()">Esci</button></div>
   </header>
   <nav class="app-nav" aria-label="Navigazione principale">
-    <a routerLink="/prezzi" routerLinkActive="active">Prezzi tornei</a>
+    <a routerLink="/tornei" routerLinkActive="active">Tornei</a>
+    <a routerLink="/gare" routerLinkActive="active">Gare</a>
     <a routerLink="/iscrizioni" routerLinkActive="active">Iscrizioni</a>
-    <a routerLink="/giocatori" routerLinkActive="active">Giocatori</a>
-    <a routerLink="/rimborsi" routerLinkActive="active">Emissione rimborso</a>
+    <a routerLink="/rimborsi" routerLinkActive="active">Rimborsi Emessi</a>
+    <a routerLink="/carrello" routerLinkActive="active">Carrello <span class="cart-pill" [attr.aria-label]="portal.cart().length+' iscrizioni nel carrello'">{{portal.cart().length}}</span></a>
   </nav>
+  <div class="season-bar"><label>Stagione agonistica <select aria-label="Stagione agonistica" [ngModel]="portal.season()" (ngModelChange)="portal.setSeason($event)"><option value="latest">Ultima disponibile{{portal.seasons()[0]?' · '+portal.seasons()[0]:''}}</option>@for(season of portal.seasons();track season){<option [value]="season">{{season}}</option>}<option value="all">Tutte le stagioni</option></select></label></div>
   <main class="dashboard-main data-main">
     @if (data.error()) { <p class="error-box" role="alert">{{ data.error() }}</p> }
     @if (data.notice() && !data.job()?.done) { <p class="notice" role="status">{{ data.notice() }}</p> }
@@ -26,5 +28,5 @@
     @if (data.job()?.errors?.length) { <div class="error-box"><strong>Ricevute da verificare</strong><ul>@for (item of data.job()!.errors; track item.receipt) { <li>Ricevuta {{ item.receipt }}: {{ item.message }}</li> }</ul></div> }
     <router-outlet />
   </main>
-  <footer class="dashboard-footer">FITET Ricevute · Versione 0.6.2</footer>
+  <footer class="dashboard-footer">FITET Ricevute · Versione 0.7.1</footer>
 </div>

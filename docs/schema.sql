@@ -89,3 +89,28 @@ CREATE TABLE {prefix}fitet_ricevute_rimborsi (
 -- iscrizioni.race_id -> gare.id; prezzi.race_id -> gare.id.
 -- Prezzo effettivo: COALESCE(prezzi.manual_cents, prezzi.automatic_cents).
 -- receipt_total_cents è il totale della ricevuta, ripetuto sulle sue gare: NON sommarlo per gara.
+
+-- Carrello personale persistente, distinto per account e società.
+CREATE TABLE {prefix}fitet_ricevute_carrello (
+    user_id bigint(20) unsigned NOT NULL,
+    society_code varchar(20) NOT NULL,
+    entry_id bigint(20) unsigned NOT NULL,
+    snapshot_json longtext NOT NULL,
+    added_at datetime NOT NULL,
+    PRIMARY KEY  (user_id,society_code,entry_id)
+) ENGINE=InnoDB {charset};
+
+-- Registro immutabile: quote/importi congelati all'emissione, non ricalcolati dal catalogo.
+CREATE TABLE {prefix}fitet_ricevute_emissioni (
+    id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    user_id bigint(20) unsigned NOT NULL,
+    society_code varchar(20) NOT NULL,
+    request_key char(32) NOT NULL,
+    created_at datetime NOT NULL,
+    total_cents bigint(20) unsigned NOT NULL,
+    items_json longtext NOT NULL,
+    options_json longtext NOT NULL,
+    PRIMARY KEY  (id),
+    UNIQUE KEY request_identity (user_id,society_code,request_key),
+    KEY listing (society_code,id)
+) ENGINE=InnoDB {charset};

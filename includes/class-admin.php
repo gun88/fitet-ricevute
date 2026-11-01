@@ -11,6 +11,7 @@ final class FR_Admin {
         add_action('admin_enqueue_scripts', [$this, 'styles']);
         add_action('admin_post_fitet_ricevute_save_user', [$this, 'save_user']);
         add_action('admin_post_fitet_ricevute_save_extranet', [$this, 'save_extranet']);
+        add_action('admin_post_fitet_ricevute_save_signature', [$this, 'save_signature']);
     }
 
     public function styles(string $hook): void {
@@ -43,6 +44,7 @@ final class FR_Admin {
         $this->guard();
         $config = FR_Settings::all();
         $extranet = FR_Extranet_Credentials::status();
+        $signature = FR_Signature::snapshot();
         $fields = [
             'app_name' => ['Nome del portale', 'text'],
             'society_name' => ['Nome società', 'text'],
@@ -71,6 +73,20 @@ final class FR_Admin {
                 </table>
                 <?php submit_button('Salva impostazioni'); ?>
             </form>
+            <h2>Firma nelle ricevute PDF</h2>
+            <p>Carica una firma PNG o JPG (massimo 1 MB, 4096 × 4096 pixel). Per uno sfondo trasparente usa PNG.
+            La firma viene inserita nelle nuove ricevute cumulative e individuali; quelle già emesse conservano la propria firma.</p>
+            <?php if (isset($_GET['signature_saved'])): ?><div class="notice notice-success"><p>Firma delle ricevute aggiornata.</p></div><?php endif; ?>
+            <?php if ($signature): ?><div class="fr-signature-preview"><img src="<?php echo esc_attr($signature['data_url']); ?>" alt="Anteprima firma delle ricevute"></div><?php else: ?><p>Nessuna firma caricata. Le ricevute avranno lo spazio per la firma manuale.</p><?php endif; ?>
+            <form method="post" enctype="multipart/form-data" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="fitet_ricevute_save_signature">
+                <?php wp_nonce_field('fitet_ricevute_save_signature'); ?>
+                <table class="form-table" role="presentation">
+                    <tr><th><label for="fr-signature-file">Immagine firma</label></th><td><input type="file" id="fr-signature-file" name="signature_file" accept="image/png,image/jpeg,.png,.jpg,.jpeg"><p class="description">Lascia vuoto per conservare la firma attuale.</p></td></tr>
+                    <?php if ($signature): ?><tr><th>Rimuovi firma</th><td><label><input type="checkbox" name="clear_signature" value="1"> Rimuovi la firma dalle nuove ricevute</label></td></tr><?php endif; ?>
+                </table>
+                <?php submit_button('Salva firma'); ?>
+            </form>
             <h2>Extranet FITeT</h2>
             <p>Credenziali della società per la ricerca automatica delle ricevute nell’extranet. I PDF vengono scaricati dai link pubblici.</p>
             <?php if (isset($_GET['extranet_saved'])): ?><div class="notice notice-success"><p>Credenziali extranet FITeT salvate.</p></div><?php endif; ?>
@@ -97,6 +113,18 @@ final class FR_Admin {
             <p>Il portale gestisce ricevute, iscrizioni, prezzi, schede giocatore e ricevute di rimborso.</p>
         </div>
         <?php
+    }
+
+    public function save_signature(): void {
+        $this->guard();check_admin_referer('fitet_ricevute_save_signature');
+        try {
+            $file=$_FILES['signature_file']??[];
+            if(!empty($_POST['clear_signature'])){
+                if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE)throw new RuntimeException('Scegli se caricare una nuova firma oppure rimuovere quella attuale.');
+                FR_Signature::remove();
+            } else { FR_Signature::upload($file); }
+        }catch(RuntimeException $error){wp_die(esc_html($error->getMessage()),'Firma non salvata',['response'=>400,'back_link'=>true]);}
+        wp_safe_redirect(admin_url('admin.php?page=fitet-ricevute&signature_saved=1'));exit;
     }
 
     public function save_extranet(): void {

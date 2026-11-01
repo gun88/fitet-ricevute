@@ -198,3 +198,53 @@ valore iniziale 100 nelle viste prezzi, iscrizioni e giocatori; barra indetermin
 layout mobile senza overflow; preferenza salvata 25 rispettata; nessun errore JavaScript non gestito.
 Impostato 100 anche nella scheda giocatore e nei due recap rimborsi. Nessuna modifica al backend
 operativo: il test controlla l'avanzamento con risposte API simulate e non accede al portale FITeT.
+
+## Aggiornamento 0.7.0 — 1 novembre 2026
+
+Ristrutturati elenchi/dettagli con cinque voci principali, stagione globale e tabelle condivise.
+Aggiunte tabelle operative carrello ed emissioni, separate dalle fonti FITeT e dal registro operativo.
+Totale mirato: **102 controlli automatici**, oltre a build, lint e integrità degli archivi.
+
+- **22 controlli workflow backend**: carrello persistente, isolamento account/società, aggiunta idempotente,
+  lock concorrenti per carrello/emissioni, blocco quote pagate/inattive, confronto prezzi e rollback anche
+  dopo l'aggiornamento della prima quota, timestamp UTC, snapshot importi immutabili, svuotamento e retry idempotente.
+- **33 controlli browser/API**: login/CSRF, menu, raggruppamento tornei, checkbox con iscritti e persistenza,
+  stagione globale, collegamenti con filtri parent, dettagli torneo/gara/giocatore, modifica quota,
+  aggiunta singola e multipla al carrello, rimozione, logout e ripristino in un nuovo contesto browser,
+  emissione cumulativa e individuale con PDF ZIP validi, registro/dettaglio/timestamp,
+  importi invariati dopo cambio prezzo, riscaricamento, storico giocatore, mobile e selezione del testo.
+- **24 controlli import/sincronizzazione** precedenti superati sul nuovo schema.
+- **12 controlli riconciliazione/rimborsi** precedenti: inclusa conservazione dello stato dopo resync.
+- **11 controlli modello/PDF**: doppi, centesimi dispari, quote zero/mancanti, output cumulativo/individuale,
+  blocco delle quote già pagate e ricevuta su più pagine.
+- Build Angular production riuscita e lint dei 16 file PHP distribuiti; restano i warning opzionali jsPDF.
+- Controllati screenshot di registro desktop e scheda giocatore mobile. Scorrimento nativo della griglia
+  su `.ag-grid-viewport`, con azioni delle colonne finali raggiungibili anche a 390 px.
+
+Test su WordPress 6.6.2 isolato con SQLite: dati fittizi ripristinati al termine, nessun accesso FITeT
+reale e nessuna emissione nel sito principale. MySQL/MariaDB resta il database di produzione previsto.
+La suite delle vecchie rotte UI non è stata ripetuta perché sostituita da `tests/portal.cjs`.
+Le vecchie marcature rimborsata restano operative, senza generare date di emissione retroattive.
+
+## Aggiornamento 0.7.1 — 1 novembre 2026
+
+Firma configurabile via upload PNG/JPEG, anteprima, sostituzione e rimozione.
+- **15 controlli backend**: facoltatività, dimensioni/MIME, dati esatti, opzione senza autoload,
+  assenza nel config pubblico, conservazione con campo vuoto, file troppo grandi/SVG/nonimmagine rifiutati,
+  JPEG accettato, firma cambiata prima del commit rifiutata senza svuotare il carrello,
+  copia canonica nell'emissione e conservazione dopo rimozione della configurazione.
+- **15 controlli browser/API**: upload dal form wp-admin, anteprima, lettura autenticata,
+  config anonimo privo della firma, nonce/capability, salvataggio impostazioni generali indipendente,
+  emissione PDF firmata, registro leggero senza ripetere l'immagine per ogni riga, sostituzione,
+  ristampa con la firma originale, rimozione e formato non consentito, nessun errore JavaScript.
+- **11 controlli modello/PDF** precedenti ripetuti: importi e ripartizione dei doppi invariati.
+- Verificati PDF cumulativo e individuali con firma PNG, PDF con firma JPEG, PDF senza firma e
+  PDF di dieci pagine con firma disegnata una sola volta sull'ultima pagina.
+  Pixel della firma della prima emissione e della ristampa identici nonostante sostituzione della configurazione.
+- Rendering Poppler e controllo visivo: firma proporzionata sopra la riga, senza sovrapposizioni con note o footer.
+- Build Angular production riuscita e lint PHP; immagini e dati usati nei test interamente fittizi,
+  salvati solo nel WordPress isolato. Nessun caricamento della firma sul sito principale.
+
+Per rigenerare le immagini di prova: `python tests/signature-fixtures.py`; quindi `php tests/signature.php`.
+La suite browser è `node tests/signature.cjs` (usa il setup/ripristino di `portal-fixture.php`).
+La verifica PDF del modello è `node tests/signature-pdf.cjs`; richiede pypdf/Poppler per l'ispezione successiva.

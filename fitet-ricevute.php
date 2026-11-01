@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FITET Ricevute
  * Description: Ricevute FITeT, dati dei tornei e degli iscritti, prezzi e rimborsi.
- * Version: 0.6.2
+ * Version: 0.7.1
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: tpomante
@@ -12,7 +12,7 @@
 
 defined('ABSPATH') || exit;
 
-define('FITET_RICEVUTE_VERSION', '0.6.2');
+define('FITET_RICEVUTE_VERSION', '0.7.1');
 define('FITET_RICEVUTE_DIR', plugin_dir_path(__FILE__));
 define('FITET_RICEVUTE_URL', plugin_dir_url(__FILE__));
 
@@ -27,6 +27,8 @@ require_once FITET_RICEVUTE_DIR . 'includes/class-extranet-client.php';
 require_once FITET_RICEVUTE_DIR . 'includes/class-sync-service.php';
 require_once FITET_RICEVUTE_DIR . 'includes/class-repository.php';
 require_once FITET_RICEVUTE_DIR . 'includes/class-auth.php';
+require_once FITET_RICEVUTE_DIR . 'includes/class-signature.php';
+require_once FITET_RICEVUTE_DIR . 'includes/class-refund-workflow.php';
 require_once FITET_RICEVUTE_DIR . 'includes/class-api.php';
 require_once FITET_RICEVUTE_DIR . 'includes/class-admin.php';
 require_once FITET_RICEVUTE_DIR . 'includes/class-frontend.php';

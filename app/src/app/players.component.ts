@@ -1,3 +1,4 @@
+import { PortalService } from './portal.service';
 import { Component, computed, inject } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
 import { ColDef, GridApi } from 'ag-grid-community';
@@ -15,7 +16,8 @@ import { TableView } from './table-preferences';
 ` })
 export class PlayersComponent {
   readonly data = inject(DataService); readonly theme = gridTheme; readonly view = new TableView('players');
-  readonly players = computed(() => playersFor(this.data.entries()));
+  readonly portal = inject(PortalService);
+  readonly players = computed(() => playersFor(this.portal.entries()));
   readonly rowId = (params:{data:Player}) => params.data.key;
   readonly defaults = { sortable:true,filter:true,floatingFilter:true,resizable:true,minWidth:140 };
   api?: GridApi<Player>;
