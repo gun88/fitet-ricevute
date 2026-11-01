@@ -253,3 +253,11 @@ Il valore salvato si ripristina prima di caricare i dati, evitando la visualizza
 dell’ultima stagione. Resta attiva la scelta iniziale dell’ultima disponibile per chi non ha preferenze.
 Il profilo `#/utente` usa i dati della sessione già autenticata, senza nuovi endpoint o campi personali.
 L’uscita dal profilo, dal menu desktop e dal menu mobile usa la stessa operazione di logout.
+
+
+## Card mobili 0.10.0
+
+Nessuna modifica alle tabelle o alle API. La vista mobile riusa righe e operazioni del portale.
+IntersectionObserver aggiunge 20 card per batch. Ricerca e filtri di stagione precedono il limite
+di rendering. AG Grid viene smontato sulla vista mobile e ricreato sul desktop con le preferenze
+salvate, senza applicare i filtri per colonna alle card.

@@ -41,22 +41,24 @@ export class TablePreferences {
 export class TableView {
   private readonly preferences = inject(TablePreferences);
   private current: Preferences;
-  readonly initialState?: GridState;
+  initialState?: GridState;
+  prepare(): void { this.initialState = structuredClone(this.current.grid); }
   readonly search;
   readonly season;
   constructor(private readonly table: string) {
-    this.current = this.preferences.read(table);
-    this.initialState = this.current.grid;
+    this.current = this.preferences.read(table);this.prepare();
     this.search = signal(this.current.search ?? '');
     this.season = signal(this.current.external?.['season'] ?? 'latest');
   }
+  restore(api: GridApi): void { if(this.initialState)api.setState(structuredClone(this.initialState)); }
   private save(): void { this.preferences.write(this.table, this.current); }
   setSearch(value: string): void { this.search.set(value.slice(0,1000)); this.current.search = this.search(); this.save(); }
   setSeason(value: string): void {
     if (!/^(?:latest|all|\d{4}\/\d{4})$/.test(value)) return;
     this.season.set(value); this.current.external = { ...this.current.external, season: value }; this.save();
   }
-  updated(event: StateUpdatedEvent): void { this.current.grid = gridPreferences(event.state); this.save(); }
+  capture(state: GridState): void { this.current.grid = structuredClone(gridPreferences(state)); this.save(); }
+  updated(event: StateUpdatedEvent): void { this.capture(event.state); }
   reset(api?: GridApi): void {
     this.setSearch('');
     api?.setFilterModel(null);

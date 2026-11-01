@@ -308,3 +308,23 @@ Suite: `node tests/layout.cjs` e `node tests/layout-pinning.cjs`; per le stagion
 `php tests/portal-fixture.php` e ripristinare con `php tests/portal-fixture.php clean`.
 Per configurazioni ed emissioni resta `admin-ui.cjs` con setup/ripristino `admin-ui-fixture.php`.
 Verifiche nel WordPress isolato con SQLite, account e immagini fittizi; dati di prova ripristinati.
+
+
+## Aggiornamento 0.10.0 — card mobili
+
+- **24 controlli browser**: nessuna istanza AG Grid in vista mobile, card a batch di 20,
+  infinite scroll su 65 tornei simulati, ricerca oltre il batch visualizzato, dettagli espandibili,
+  ripristino griglia desktop e dei filtri per colonna, ricerca condivisa e filtri desktop esclusi
+  dalla vista mobile, aggiunta/rimozione bozza, note persistite e modifica quota tramite API,
+  recap per atleta a card, dettaglio torneo con elenchi a card, directory giocatori, assenza
+  di overflow e di errori JavaScript. Prezzi e bozze modificati solo nel sito di prova isolato.
+- **29 controlli configurazione/backup/emissione/stampa** ripetuti con AG Grid desktop:
+  emissioni, note, firma/timbro storici, formati PDF e ripristino backup funzionanti.
+- Build Angular production completata; lint del bootstrap PHP riuscito. Nessuna modifica a DDL
+  o API backend. Restano i warning di ottimizzazione delle dipendenze opzionali jsPDF.
+- Anteprime delle card Tornei, Gare e Bozza controllate visivamente. I file di prova non entrano
+  nei pacchetti. AG Grid resta installato e attivo sul desktop; fino a 1100 px non viene montato.
+
+Suite corrente: `mobile-cards.cjs`, setup e pulizia con `admin-ui-fixture.php`. La fixture dei
+65 tornei viene simulata solo nella risposta browser, senza inserire record nel database.
+I dati operativi del sito isolato vengono ripristinati alla fine delle verifiche.

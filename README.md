@@ -1,6 +1,6 @@
 # FITET Ricevute
 
-Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.9.0**.
+Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.10.0**.
 
 ## Pagine del portale
 
@@ -46,7 +46,7 @@ Lo sfondo resta inattivo e la navigazione da tastiera resta nel menu finché è 
 Le pagine condividono margini e intestazioni compatti. In Tornei e Gare il filtro con iscrizioni è
 accanto alla ricerca su desktop e sopra di essa su mobile. L’ultima sincronizzazione rimane vicina
 al pulsante; avanzamento ed errori della sincronizzazione compaiono nella pagina Tornei.
-Le azioni fisse a destra nelle griglie diventano scorrevoli su mobile per lasciare visibili i dati.
+Su mobile gli elenchi sono card Angular; AG Grid rimane attivo su desktop.
 
 ## Bozza rimborso, emissione e stampa
 
@@ -174,3 +174,22 @@ non utilizzare il portale mentre è in corso.
 Limiti attuali: archivio compresso 16 MB (o limite upload PHP inferiore), contenuto non compresso 64 MB,
 100.000 righe totali, PDF originali 32 MB complessivi e 3 MB per file.
 Il backup non è un file Excel: import/export Excel rimane una funzione distinta da implementare.
+
+
+## Card mobili e infinite scroll (0.10.0)
+
+Fino a 1100 px gli elenchi, le tabelle nei dettagli, la bozza, il recap per atleta e la directory
+Giocatori usano card al posto di AG Grid. Sul desktop rimangono le griglie con filtri per colonna,
+ordinamento e preferenze salvate. Le card espongono titolo, data, importo/stato, dettagli espandibili,
+link e azioni, modifica delle quote e note della bozza tramite le API esistenti.
+La ricerca generale copre tutti i dati, anche le card non ancora visualizzate. Stagione e filtri
+con iscrizioni restano condivisi; i filtri per colonna desktop non limitano le card.
+
+L’infinite scroll aggiunge 20 card alla volta avvicinandosi al fondo e mostra il conteggio risultati.
+Il rendering è progressivo sui dati già caricati dalle API; non vengono fatte nuove richieste per
+ogni scorrimento. Ordine mobile: data più recente prima; giocatori e recap in ordine alfabetico.
+La ricerca o il cambio di dataset ripartono dal primo batch.
+
+`tests/mobile-cards.cjs` verifica infinite scroll su 65 tornei simulati, ricerca completa,
+preferenze desktop e operazioni mobili. Setup/ripristino con `admin-ui-fixture.php`.
+Le vecchie suite che presuppongono una griglia mobile sono storiche.

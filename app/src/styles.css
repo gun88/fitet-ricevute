@@ -292,3 +292,19 @@ select:focus-visible, textarea:focus-visible { outline: 3px solid #79b89f; outli
   .refund-settings { grid-template-columns: 1fr; padding: 16px; }
   .profile-card { padding: 4px 16px 16px; }
 }
+
+.mobile-card-list { display:grid;gap:12px; }
+.mobile-card { min-width:0;padding:16px;background:#fff;border:1px solid #dfe7dc;border-radius:10px;overflow-wrap:anywhere; }
+.mobile-card h3 { margin:0;font-size:15px;line-height:1.5;color:#25473b; }
+.card-heading { display:flex;justify-content:space-between;align-items:flex-start;gap:14px; }
+.card-heading h3 { flex:1; }.card-amount { font-size:13px;font-weight:600;color:var(--green); }
+.card-subtitle,.card-context { margin:8px 0;font-size:12px;line-height:1.6;color:var(--muted); }
+.card-status { display:inline-block;padding:4px 8px;background:#edf3e9;color:var(--green);border-radius:5px;font-size:11px;margin-bottom:8px; }
+.mobile-card summary { padding:12px 0;cursor:pointer;font-size:12px;color:var(--green); }
+.card-fields { display:grid;grid-template-columns:minmax(90px,1fr) minmax(0,1.5fr);gap:8px 12px;font-size:12px;line-height:1.6;margin:8px 0 16px; }
+.card-fields dt { color:var(--muted); }.card-fields dd { margin:0;white-space:pre-line; }.card-fields dd a { display:block;color:var(--green); }
+.card-actions { display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;border-top:1px solid #edf0ea;padding-top:10px;margin-top:4px;font-size:12px; }
+.card-actions a { padding:10px 0;color:var(--green); }.card-editor { display:grid;gap:8px;margin:12px 0; }.card-editor label { font-size:12px;color:var(--muted); }.card-editor input,.card-editor textarea { display:block;width:100%;min-height:44px;border:1px solid #cad8c8;border-radius:6px;padding:10px;font-size:16px;background:white; }.card-editor button { justify-self:start;min-height:44px; }
+.infinite-sentinel { padding:16px 0;text-align:center;color:var(--muted);font-size:12px; }
+
+.mobile-recap-search { display:block;font-size:12px;color:var(--muted);margin:12px 0; }.mobile-recap-search input { display:block;min-height:44px;width:100%;border:1px solid #cad8c8;border-radius:7px;padding:10px;font-size:16px;margin-top:7px; }
