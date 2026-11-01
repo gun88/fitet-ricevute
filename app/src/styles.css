@@ -246,7 +246,6 @@ select:focus-visible, textarea:focus-visible { outline: 3px solid #79b89f; outli
   .topbar { height: 60px; min-height: 60px; padding: 0 16px; gap: 14px; }
   .topbar .brand { font-size: 14px; }
   .menu-toggle { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; width: 44px; height: 44px; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: #263b2e; margin-left: auto; }
-  .menu-toggle span { display: block; width: 27px; height: 3px; background: currentColor; border-radius: 2px; }
   .menu-toggle:hover { background: #f1f5ee; }
   .header-panel { position: fixed; top: 60px; bottom: 0; left: 0; z-index: 90; width: min(320px,calc(100vw - 64px)); padding: 14px 0 24px; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0; background: #fff; overflow-y: auto; overscroll-behavior: contain; transform: translateX(-100%); visibility: hidden; transition: transform .2s ease, visibility .2s; box-shadow: 5px 0 24px #163a2515; }
   .header-panel.is-open { transform: translateX(0); visibility: visible; }
@@ -370,3 +369,20 @@ ag-grid-angular {--ag-auto-height-min-body-height: 32px;}
 .manual-import-section { margin-bottom:20px; }
 .manual-import-actions { display:flex; flex-wrap:wrap; gap:10px; }
 .manual-import-file { display:none !important; }
+
+/* One icon family; SVG geometry and stroke come from the pinned Lucide package. */
+fr-icon { color:inherit; }
+fr-icon svg { fill:none!important; }
+.inline-row-actions .quota-toggle,.inline-row-actions .quota-edit { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:4px; font-size:inherit; }
+.page-more-button fr-icon svg { width:24px; height:24px; fill:none; }
+.row-links a:has(fr-icon) { display:inline-flex; align-items:center; justify-content:center; min-width:28px; min-height:28px; }
+.card-actions button:has(fr-icon),.sync-progress button:has(fr-icon) { display:inline-flex; align-items:center; gap:6px; }
+.disclosure-icon { margin-right:6px; transition:transform .15s; }
+details > summary { list-style:none; }
+details > summary::-webkit-details-marker { display:none; }
+details[open] > summary > .disclosure-icon { transform:rotate(90deg); }
+.fr-grid-icon { display:block; }
+
+fr-icon svg { stroke-width:2!important; stroke-linecap:round; stroke-linejoin:round; }
+
+.editable-header { display:inline-flex; align-items:center; gap:6px; }

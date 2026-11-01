@@ -54,6 +54,8 @@ final class FR_Settings {
 
     public static function public_config(): array {
         $all = self::all();
-        return array_intersect_key($all, array_flip(['app_name', 'society_name', 'login_message', 'enabled', 'manual_receipt_kb', 'manual_poster_kb']));
+        $public=array_intersect_key($all, array_flip(['app_name', 'society_name', 'login_message', 'enabled', 'manual_receipt_kb', 'manual_poster_kb']));
+        $public['committees']=[];foreach(require __DIR__.'/committees.php' as $id=>$name)$public['committees'][]=['id'=>(string)$id,'name'=>$name];
+        return $public;
     }
 }

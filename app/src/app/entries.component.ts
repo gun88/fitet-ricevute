@@ -1,3 +1,4 @@
+import { GridSizingDirective } from './grid-sizing.directive';
 import { GridPresentation } from './grid-presentation.service';
 import { Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
@@ -22,10 +23,10 @@ export function entryColumns(data: DataService, action?: (row: Row) => void): Co
   ];
 }
 
-@Component({ selector: 'fr-entries', imports: [AgGridAngular], template: `
+@Component({ selector: 'fr-entries', imports: [GridSizingDirective,AgGridAngular], template: `
   <div class="page-heading"><div><span class="eyebrow">02 · ISCRIZIONI</span><h1>Iscrizioni e rimborsi</h1><p class="dashboard-subtitle">Seleziona le quote da inserire nel recap di rimborso.</p></div><button class="sync-button" (click)="emit()" [disabled]="!selectedRows().length || selectedRows().length > 1000 || data.locked()">Emetti rimborso ({{ selectedRows().length }})</button></div>
   <div class="grid-toolbar"><label>Cerca in tutte le colonne<input type="search" aria-label="Cerca iscrizioni" [value]="view.search()" maxlength="1000" (input)="view.setSearch($any($event.target).value)" placeholder="Atleta, torneo, gara…"></label><div class="bulk-actions"><button class="text-button" (click)="view.reset(api)">Azzera filtri e ordine</button><button class="secondary-button" (click)="data.mark(selectedRows(), true)" [disabled]="!selectedRows().length || selectedRows().length > 1000 || data.locked()">Segna selezione rimborsata</button><button class="text-button" (click)="clearSelection()" [disabled]="!selectedRows().length">Deseleziona tutto</button></div></div>
-  <ag-grid-angular id="entries-grid" class="main-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="data.entries()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [rowSelection]="selection" [selectionColumnDef]="selectionColumn" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" (gridReady)="api = $event.api" (selectionChanged)="changed($event)" (rowDataUpdated)="restore($event)" [overlayNoRowsTemplate]="empty" />
+  <ag-grid-angular id="entries-grid" class="main-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="data.entries()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [rowSelection]="selection" [selectionColumnDef]="selectionColumn" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [frGridSizing]="view" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" (gridReady)="api = $event.api" (selectionChanged)="changed($event)" (rowDataUpdated)="restore($event)" [overlayNoRowsTemplate]="empty" />
   <p class="grid-help">{{ selectedRows().length }} quote selezionate, anche su altre pagine o nascoste dai filtri. Massimo 1000 per emissione. Le quote già rimborsate restano visibili nel recap e vengono escluse dai nuovi PDF. Nei doppi lo stato riguarda l’intera quota della coppia.</p>
 ` })
 export class EntriesComponent {
@@ -35,7 +36,7 @@ export class EntriesComponent {
   readonly columns = entryColumns(this.data);
   readonly selectedRows = computed(() => this.data.entries().filter(row => this.data.selected().includes(row.id)));
   readonly selection: RowSelectionOptions<Row> = { mode: 'multiRow', checkboxes: true, headerCheckbox: true, selectAll: 'filtered', enableClickSelection: false };
-  readonly selectionColumn: SelectionColumnDef = { pinned:'left',width:48,minWidth:48,maxWidth:48,resizable:false };
+  readonly selectionColumn: SelectionColumnDef = { pinned:'left',width:48,minWidth:32,maxWidth:240,resizable:false };
   readonly empty = '<span>Nessuna iscrizione disponibile. Modifica i filtri o sincronizza le ricevute.</span>';
   readonly view = new TableView('entries'); api?: GridApi<Row>; private restoring = false;
   changed(event: SelectionChangedEvent<Row>): void {

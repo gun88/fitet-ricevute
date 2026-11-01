@@ -1,3 +1,4 @@
+import { GridSizingDirective } from './grid-sizing.directive';
 import { GridPresentation } from './grid-presentation.service';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +12,7 @@ import { defaultColDef, getRowId, gridTheme } from './grid';
 import { entryColumns } from './entries.component';
 import { Allocation, AthleteSummary, athleteSummary, pendingTotal } from './refund-model';
 
-@Component({ selector: 'fr-refunds', imports: [FormsModule, RouterLink, AgGridAngular], template: `
+@Component({ selector: 'fr-refunds', imports: [GridSizingDirective,FormsModule, RouterLink, AgGridAngular], template: `
   <div class="page-heading"><div><span class="eyebrow">03 · RIMBORSI</span><h1>Emissione rimborso</h1><p class="dashboard-subtitle">Controlla le quote selezionate e prepara le ricevute.</p></div><a class="secondary-button" routerLink="/iscrizioni">Torna alle iscrizioni</a></div>
   @if (loading()) { <p role="status">Caricamento del recap…</p> }
   @if (!loading() && !rows().length) { <div class="empty-state">Seleziona le quote nella pagina Iscrizioni per creare un rimborso.</div> }
@@ -25,10 +26,10 @@ import { Allocation, AthleteSummary, athleteSummary, pendingTotal } from './refu
       <label class="wide-field">Note facoltative<input name="notes" [(ngModel)]="notes" maxlength="500" placeholder="Es. rimborso quote tornei ottobre"></label>
     </section>
     <h2 class="recap-heading">Recap cumulativo</h2>
-    <ag-grid-angular id="refund-grid" class="recap-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="rows()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [initialState]="recapView.initialState" (stateUpdated)="recapView.updated($event)" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" />
+    <ag-grid-angular id="refund-grid" class="recap-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="rows()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [frGridSizing]="recapView" [initialState]="recapView.initialState" (stateUpdated)="recapView.updated($event)" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" />
     <div class="bulk-actions recap-actions"><button class="secondary-button" (click)="markAll(true)" [disabled]="data.locked() || loading() || !pendingCount()">Segna tutte rimborsate</button><button class="text-button" (click)="markAll(false)" [disabled]="data.locked() || loading() || !paidCount()">Segna tutte da rimborsare</button></div>
     <h2 class="recap-heading">Recap per atleta</h2>
-    <ag-grid-angular id="athlete-grid" class="athlete-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="athletes()" [initialState]="athleteView.initialState" (stateUpdated)="athleteView.updated($event)" [columnDefs]="athleteColumns" [defaultColDef]="summaryDefaults" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" />
+    <ag-grid-angular id="athlete-grid" class="athlete-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="athletes()" [frGridSizing]="athleteView" [initialState]="athleteView.initialState" (stateUpdated)="athleteView.updated($event)" [columnDefs]="athleteColumns" [defaultColDef]="summaryDefaults" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" />
     <p class="grid-help">Le quote già rimborsate sono escluse dai nuovi PDF. La generazione non cambia lo stato del rimborso. Nel doppio, un eventuale centesimo dispari è assegnato al primo atleta; la marcatura riguarda l’intera coppia.</p>
     @if (total() === null) { <p class="error-box" role="alert">Mancano delle quote: definisci prima i prezzi nella pagina Prezzi tornei.</p> }
     <div class="issue-footer"><span>{{ pendingCount() }} quote da inserire · {{ money(total()) }}</span><button class="sync-button" (click)="generate()" [disabled]="data.locked() || loading() || total() === null || !pendingCount() || !issuer.trim() || !issueDate">{{ data.busy() ? 'Preparazione…' : 'Genera PDF' }}</button></div>
@@ -38,7 +39,7 @@ export class RefundsComponent implements OnInit {
  readonly presentation=inject(GridPresentation);
   readonly data = inject(DataService); private readonly auth = inject(AuthService);
   readonly theme = gridTheme; readonly defaults = defaultColDef; readonly rowId = getRowId;
-  readonly summaryDefaults = { sortable: true, filter: true, floatingFilter: false, resizable: true, minWidth: 130 };
+  readonly summaryDefaults = { sortable: true, filter: true, floatingFilter: false, resizable: true, minWidth:64 };
   readonly recapView = new TableView('refund-recap'); readonly athleteView = new TableView('refund-athletes');
   readonly rows = signal<Row[]>([]); readonly loading = signal(true); readonly allocation = signal<Allocation>('half');
   readonly athletes = computed(() => athleteSummary(this.rows(), this.allocation()));
@@ -48,12 +49,12 @@ export class RefundsComponent implements OnInit {
   readonly money = money;
   readonly columns = entryColumns(this.data, row => this.markOne(row));
   readonly athleteColumns: ColDef<AthleteSummary>[] = [
-    { field: 'name', headerName: 'Atleta', flex: 2, minWidth: 230 },
+    { field: 'name', headerName: 'Atleta',  minWidth:64 },
     { field: 'card', headerName: 'Tessera' },
     { field: 'quotes', headerName: 'Partecipazioni', filter: 'agNumberColumnFilter' },
-    { field: 'total_cents', headerName: 'Totale quote', flex: 1, valueGetter: p => p.data?.total_cents == null ? null : p.data.total_cents / 100, valueFormatter: p => p.value == null ? 'Da definire' : money(Math.round(p.value * 100)), filter: 'agNumberColumnFilter' },
-    { field: 'paid_cents', headerName: 'Già rimborsato', flex: 1, valueGetter: p => (p.data?.paid_cents ?? 0) / 100, valueFormatter: p => money(Math.round(p.value * 100)), filter: 'agNumberColumnFilter' },
-    { field: 'pending_cents', headerName: 'Da rimborsare', flex: 1, valueGetter: p => p.data?.pending_cents == null ? null : p.data.pending_cents / 100, valueFormatter: p => p.value == null ? 'Da definire' : money(Math.round(p.value * 100)), filter: 'agNumberColumnFilter' },
+    { field: 'total_cents', headerName: 'Totale quote',  valueGetter: p => p.data?.total_cents == null ? null : p.data.total_cents / 100, valueFormatter: p => p.value == null ? 'Da definire' : money(Math.round(p.value * 100)), filter: 'agNumberColumnFilter' },
+    { field: 'paid_cents', headerName: 'Già rimborsato',  valueGetter: p => (p.data?.paid_cents ?? 0) / 100, valueFormatter: p => money(Math.round(p.value * 100)), filter: 'agNumberColumnFilter' },
+    { field: 'pending_cents', headerName: 'Da rimborsare',  valueGetter: p => p.data?.pending_cents == null ? null : p.data.pending_cents / 100, valueFormatter: p => p.value == null ? 'Da definire' : money(Math.round(p.value * 100)), filter: 'agNumberColumnFilter' },
   ];
   issuer = ''; issueDate = new Date().toLocaleDateString('en-CA'); notes = ''; format: 'total' | 'athletes' | 'both' = 'total';
   async ngOnInit(): Promise<void> {

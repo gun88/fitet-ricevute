@@ -427,3 +427,15 @@ Compilazione di verifica esclusivamente in `tests/.runtime/qa-app`; nessuna sost
 ### Import JSON/Excel di un torneo manuale
 
 `tests/manual-import.cjs`: 17 controlli su equivalenza dei modelli JSON/XLSX, singolo/doppio, tessere con zeri, euro numerici, date/versioni/importi non validi, ID e iscrizioni duplicate, doppio incompleto, numeri tessera non sicuri, esclusione allegati/conferme, formule Excel, gara inesistente e secondo torneo nel file. `tests/manual-import-ui.cjs`: 15 controlli browser su quattro azioni, download dei modelli, compilazione dei campi e degli atleti, obbligo della ricevuta manuale, reset degli allegati, errore senza perdita dati, nessuna chiamata al salvataggio e layout mobile. Modello XLSX creato con artifact-tool, renderizzato e riletto con il parser dell’app; il lettore normalizza in memoria i namespace OOXML prefissati per compatibilità con ExcelJS. Build solo nella copia isolata, assets del sito invariati.
+
+### Dimensionamento condiviso delle colonne
+
+`tests/grid-widths.cjs`: 6 controlli su limite iniziale 420px, espansione oltre il limite, larghezza esatta dei comandi, priorità e persistenza logica del resize manuale. `tests/grid-sizing-ui.cjs`: 10 controlli browser su testi lunghi, drag oltre 600px e ripristino al reload, riempimento esatto di un contenitore largo (2898px), riga più lunga fuori dal viewport, checkbox/+ e checkbox/−/matita completamente visibili e nessun errore browser. Campi con link misurati sia tramite dati formattati sia tramite renderer DOM, senza rimuovere la virtualizzazione. Le misure automatiche non vengono registrate come scelte manuali. Filtri/ordine/preferenze rimangono separati. Compilazione e browser solo sull’installazione isolata.
+
+Regressioni dopo il dimensionamento condiviso: superati gli 8 controlli sui pagamenti per atleta e i 10 sull’accordion delle iscrizioni disponibili. Le card mobile e le relative azioni restano invariate.
+
+Select comitati: tests/committees.php verifica 22 ID nella mappa pubblica e rifiuto server di codici sconosciuti. tests/manual-import-ui.cjs aggiornato: 19 controlli superati, inclusi tutte le opzioni, selezione Lombardia da file, Nazionale 30 e rimozione del campo nome manuale.
+
+### Icone Lucide
+
+`tests/lucide-ui.cjs`: 14 controlli browser superati su menu avanzato, filtri e paginazione AG Grid, profilo/logout, meno bozza, matita e apertura editor note, colori azioni, stampa con nome accessibile, intestazione quota modificabile, hamburger/logout mobile, azzera ricerca, assenza errori e assenza richieste esterne per le icone. Controllo visivo della pagina Gare mobile. Compilazione solamente nell’installazione isolata; build del sito invariata.

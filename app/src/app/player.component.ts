@@ -1,3 +1,4 @@
+import { GridSizingDirective } from './grid-sizing.directive';
 import { GridPresentation } from './grid-presentation.service';
 import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -10,7 +11,7 @@ import { GridActionComponent, defaultColDef, getRowId, gridTheme } from './grid'
 import { inSeason, playerKey, playersFor, seasonFor, seasonsFor } from './players-model';
 import { TableView } from './table-preferences';
 
-@Component({ selector:'fr-player',imports:[AgGridAngular,RouterLink],template:`
+@Component({ selector:'fr-player',imports:[GridSizingDirective,AgGridAngular,RouterLink],template:`
   <div class="page-heading"><div><span class="eyebrow">SCHEDA GIOCATORE</span><h1>{{ player()?.name || 'Giocatore' }}</h1><p class="dashboard-subtitle">Tessera {{ player()?.card || '—' }} · Partecipazioni ai tornei e stato dei rimborsi.</p></div><a class="secondary-button" routerLink="/giocatori">Tutti i giocatori</a></div>
   @if (!data.loading() && !player()) { <p class="empty-state">Giocatore non presente nelle ricevute disponibili.</p> }
   @if (player()) {
@@ -20,7 +21,7 @@ import { TableView } from './table-preferences';
       <button class="secondary-button" (click)="reset()">Azzera filtri e ordine</button>
     </div>
     <div class="recap-totals player-totals"><div><span>Tornei nell’annata scelta</span><strong>{{ tournaments() }}</strong></div><div><span>Partecipazioni</span><strong>{{ rows().length }}</strong></div><div><span>Quote rimborsate</span><strong>{{ paid() }}</strong></div><div><span>Da rimborsare</span><strong>{{ rows().length - paid() }}</strong></div></div>
-    <ag-grid-angular id="player-grid" class="main-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="rows()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" (gridReady)="api = $event.api" />
+    <ag-grid-angular id="player-grid" class="main-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="rows()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [frGridSizing]="view" [initialState]="view.initialState" (stateUpdated)="view.updated($event)" (gridReady)="api = $event.api" />
     <p class="grid-help">Ogni riga è una partecipazione a una gara. Le quote dei doppi sono per coppia e lo stato riguarda l’intera iscrizione. I contatori si riferiscono all’annata scelta; i filtri della griglia restringono le righe mostrate. Annata, filtri e ordinamento restano salvati nel browser.</p>
   }
 ` })

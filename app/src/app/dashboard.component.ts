@@ -1,3 +1,4 @@
+import { IconComponent } from './icon.component';
 import { FormsModule } from '@angular/forms';
 import { PortalService } from './portal.service';
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild, inject, signal, effect } from '@angular/core';
@@ -6,7 +7,7 @@ import { AuthService, PublicConfig, errorMessage } from './auth.service';
 import { DataService } from './data.service';
 import { Subscription } from 'rxjs';
 
-@Component({ selector: 'fr-dashboard', imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule], templateUrl: './dashboard.component.html' })
+@Component({ selector: 'fr-dashboard', imports: [IconComponent,RouterOutlet, RouterLink, RouterLinkActive, FormsModule], templateUrl: './dashboard.component.html' })
 export class DashboardComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   readonly data = inject(DataService);

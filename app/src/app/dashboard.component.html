@@ -1,12 +1,13 @@
 <div class="dashboard">
   <header #appHeader class="topbar" [attr.role]="mobileOpen()?'dialog':null" [attr.aria-modal]="mobileOpen()?'true':null" [attr.aria-label]="mobileOpen()?'Menu principale':null">
     <a class="brand compact" routerLink="/tornei" (click)="closeMenus()"><span class="brand-mark" aria-hidden="true">fr<span>•</span></span><span>{{ settings()?.app_name || 'FITET Ricevute' }}</span></a>
-    <button #menuToggle class="menu-toggle" type="button" aria-label="Menu principale" aria-controls="header-panel" [attr.aria-expanded]="mobileOpen()" (click)="toggleMobile()"><span></span><span></span><span></span></button>
+    <button #menuToggle class="menu-toggle" type="button" aria-label="Menu principale" aria-controls="header-panel" [attr.aria-expanded]="mobileOpen()" (click)="toggleMobile()"><fr-icon [name]="mobileOpen()?'close':'menu'" [size]="26" /></button>
     <div #headerPanel id="header-panel" class="header-panel" [class.is-open]="mobileOpen()">
       <nav class="app-nav" aria-label="Navigazione principale">
         <a routerLink="/tornei" routerLinkActive="active" (click)="closeMenus()">Tornei</a>
         <a routerLink="/gare" routerLinkActive="active" (click)="closeMenus()">Gare</a>
         <a routerLink="/iscrizioni" routerLinkActive="active" (click)="closeMenus()">Iscrizioni</a>
+        <a routerLink="/giocatori" routerLinkActive="active" (click)="closeMenus()">Giocatori</a>
         <a routerLink="/rimborsi" routerLinkActive="active" (click)="closeMenus()">Rimborsi Emessi</a>
         <a routerLink="/bozza-rimborso" routerLinkActive="active" (click)="closeMenus()">Bozza rimborso <span class="cart-pill" [attr.aria-label]="portal.cart().length+' iscrizioni in bozza rimborso'">{{portal.cart().length}}</span></a>
       </nav>
@@ -15,9 +16,9 @@
         <div #userArea class="user-menu">
           <button #userToggle class="user-trigger" type="button" [attr.aria-expanded]="userOpen()" aria-controls="user-actions" (click)="userOpen.set(!userOpen())"><span class="user-name">{{ auth.user()?.display_name }}</span><span class="user-avatar" aria-hidden="true">{{initial()}}</span></button>
           @if(userOpen()){
-            <div id="user-actions" class="user-dropdown"><span class="user-dropdown-heading">Utente</span><a routerLink="/utente" (click)="closeMenus()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>Profilo utente</a><button type="button" (click)="logout()" [disabled]="data.locked()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H4v18h5M14 7l5 5-5 5M8 12h11"/></svg>Log out</button></div>
+            <div id="user-actions" class="user-dropdown"><span class="user-dropdown-heading">Utente</span><a routerLink="/utente" (click)="closeMenus()"><fr-icon name="user" />Profilo utente</a><button type="button" (click)="logout()" [disabled]="data.locked()"><fr-icon name="logout" />Log out</button></div>
           }
-          <div class="mobile-user-actions"><a routerLink="/utente" (click)="closeMenus()"><span class="user-avatar" aria-hidden="true">{{initial()}}</span><span>{{ auth.user()?.display_name }}</span></a><button type="button" (click)="logout()" [disabled]="data.locked()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H4v18h5M14 7l5 5-5 5M8 12h11"/></svg>Log out</button></div>
+          <div class="mobile-user-actions"><a routerLink="/utente" (click)="closeMenus()"><span class="user-avatar" aria-hidden="true">{{initial()}}</span><span>{{ auth.user()?.display_name }}</span></a><button type="button" (click)="logout()" [disabled]="data.locked()"><fr-icon name="logout" />Log out</button></div>
         </div>
       </div>
     </div>
@@ -26,7 +27,7 @@
   @if (data.notice() === 'Iscrizioni aggiunte alla bozza rimborso.') {
     <div class="notice-toast" [attr.inert]="mobileOpen()?'':null">
       <p role="status" aria-atomic="true">{{data.notice()}}</p>
-      <button type="button" class="notice-toast-close" aria-label="Chiudi notifica" (click)="data.notice.set('')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      <button type="button" class="notice-toast-close" aria-label="Chiudi notifica" (click)="data.notice.set('')"><fr-icon name="close" /></button>
     </div>
   }
   <main class="dashboard-main data-main" [attr.inert]="mobileOpen()?'':null">

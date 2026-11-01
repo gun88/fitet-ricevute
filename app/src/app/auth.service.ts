@@ -6,7 +6,7 @@ import { apiUrl } from './config';
 export interface User { id: number; username: string; display_name: string }
 export interface GridPreferences { payment_method?:'transfer'|'cash'; auto_height: boolean; density: 'standard'|'compact' }
 export interface Session { grid_preferences?: GridPreferences; user: User; expires_at: number; csrf_token: string }
-export interface PublicConfig { app_name: string; society_name: string; login_message: string; enabled: boolean; manual_receipt_kb:number; manual_poster_kb:number }
+export interface PublicConfig { committees:{id:string;name:string}[]; app_name: string; society_name: string; login_message: string; enabled: boolean; manual_receipt_kb:number; manual_poster_kb:number }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

@@ -1,10 +1,11 @@
+import { iconSvg } from './icons';
 import { Component } from '@angular/core';
 import { ICellRendererAngularComp } from 'ag-grid-angular';
 import { AllCommunityModule, ColDef, ICellRendererParams, ModuleRegistry, provideGlobalGridOptions, themeQuartz } from 'ag-grid-community';
 import { Row } from './data.service';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-provideGlobalGridOptions({ suppressMenuHide: true, enableCellTextSelection: true, ensureDomOrder: true, localeText: {
+provideGlobalGridOptions({ icons:{filter:iconSvg('filter'),filterActive:iconSvg('filter'),sortAscending:iconSvg('arrow-up'),sortDescending:iconSvg('arrow-down'),sortUnSort:iconSvg('sort'),first:iconSvg('first'),last:iconSvg('last'),previous:iconSvg('chevron-left'),next:iconSvg('chevron-right'),smallDown:iconSvg('chevron-down'),smallRight:iconSvg('chevron-right'),smallLeft:iconSvg('chevron-left'),menu:iconSvg('more'),close:iconSvg('close'),cancel:iconSvg('close'),columnHeaderEdit:iconSvg('edit')}, suppressMenuHide: true, enableCellTextSelection: true, ensureDomOrder: true, localeText: {
   page: 'Pagina', more: 'altro', to: 'a', of: 'di', next: 'Successiva', last: 'Ultima', first: 'Prima', previous: 'Precedente', pageSizeSelectorLabel: 'Righe per pagina:',
   loadingOoo: 'Caricamento…', noRowsToShow: 'Nessuna riga da mostrare', noMatchingRows: 'Nessuna riga corrispondente', searchOoo: 'Cerca…', blanks: '(Vuote)',
   filterOoo: 'Filtra…', equals: 'Uguale a', notEqual: 'Diverso da', empty: 'Scegli un filtro',
@@ -15,7 +16,7 @@ provideGlobalGridOptions({ suppressMenuHide: true, enableCellTextSelection: true
   ariaFilterInput: 'Filtro', ariaSearch: 'Cerca', ariaFilterColumn: 'Filtra colonna', ariaSortableColumn: 'Colonna ordinabile',
 } });
 export const gridTheme = themeQuartz.withParams({ accentColor: '#24563d', backgroundColor: '#ffffff', headerBackgroundColor: '#f1f5ee', headerTextColor: '#365440', foregroundColor: '#263b2e', borderColor: '#dfe7dc', fontFamily: 'Arial, sans-serif', fontSize: 12, spacing: 8, wrapperBorderRadius: 10 });
-export const defaultColDef: ColDef<Row> = { sortable: true, filter: true, floatingFilter: false, suppressHeaderFilterButton: false, resizable: true, minWidth: 120 };
+export const defaultColDef: ColDef<Row> = { sortable: true, filter: true, floatingFilter: false, suppressHeaderFilterButton: false, resizable: true, minWidth: 64 };
 export const getRowId = (params: { data: Row }) => String(params.data.id);
 
 interface ActionParams extends ICellRendererParams<Row> { label: (row: Row) => string; action: (row: Row) => void; disabled: (row: Row) => boolean }

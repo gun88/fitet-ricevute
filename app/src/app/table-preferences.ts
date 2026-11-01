@@ -3,7 +3,7 @@ import type { GridApi, GridState, StateUpdatedEvent } from 'ag-grid-community';
 import { AuthService } from './auth.service';
 import { config } from './config';
 
-interface Preferences { schema: 1; grid?: GridState; search?: string; external?: Record<string, string> }
+interface Preferences { schema: 1; manualWidths?:Record<string,number>; grid?: GridState; search?: string; external?: Record<string, string> }
 const sections = ['version','filter','sort','columnOrder','columnPinning','columnSizing','columnVisibility','pagination'] as const;
 
 function gridPreferences(state: GridState): GridState {
@@ -25,6 +25,7 @@ export class TablePreferences {
       if (value?.schema !== 1 || typeof value !== 'object') return { schema: 1 };
       return {
         schema: 1,
+        manualWidths:value.manualWidths&&typeof value.manualWidths==='object'?Object.fromEntries(Object.entries(value.manualWidths).filter(([key,width])=>key.length<150&&typeof width==='number'&&Number.isFinite(width)&&width>=32&&width<=20000)) as Record<string,number>:undefined,
         grid: value.grid && typeof value.grid === 'object' && !Array.isArray(value.grid) ? gridPreferences(value.grid) : undefined,
         search: typeof value.search === 'string' ? value.search.slice(0,1000) : '',
         external: value.external && typeof value.external === 'object' && !Array.isArray(value.external) ? Object.fromEntries(Object.entries(value.external).filter(([key,item]) => key.length < 80 && typeof item === 'string' && item.length < 100)) as Record<string,string> : {},
@@ -51,6 +52,8 @@ export class TableView {
     this.season = signal(this.current.external?.['season'] ?? 'latest');
   }
   restore(api: GridApi): void { if(this.initialState)api.setState(structuredClone(this.initialState)); }
+  get manualColumnWidths():Readonly<Record<string,number>> {return this.current.manualWidths||{};}
+  setManualColumnWidth(id:string,width:number):void {this.current.manualWidths={...this.current.manualWidths,[id]:width};this.save();}
   private save(): void { this.preferences.write(this.table, this.current); }
   setSearch(value: string): void { this.search.set(value.slice(0,1000)); this.current.search = this.search(); this.save(); }
   setSeason(value: string): void {

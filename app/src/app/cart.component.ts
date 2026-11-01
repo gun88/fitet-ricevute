@@ -1,3 +1,5 @@
+import { IconComponent } from './icon.component';
+import { GridSizingDirective } from './grid-sizing.directive';
 import { settlement, Adjustment, PaymentMethod, paymentTotals } from './refund-settlement';
 import { ActivatedRoute } from '@angular/router';
 import { GridPresentation } from './grid-presentation.service';
@@ -18,7 +20,7 @@ import { gridTheme, defaultColDef } from './grid';
 import { TableView } from './table-preferences';
 @Component({selector:'fr-athlete-payment',imports:[FormsModule],template:`<select class="athlete-payment-select" [attr.aria-label]="'Modalità pagamento '+params.data.name" [ngModel]="params.data.payment_method" [disabled]="params.disabled()" (click)="$event.stopPropagation()" (ngModelChange)="params.change(params.data.key,$event)"><option value="transfer">Bonifico</option><option value="cash">Contanti</option></select>`})
 export class AthletePaymentComponent {params:any;agInit(p:any){this.params=p;}refresh(p:any){this.params=p;return true;}}
-@Component({selector:'fr-cart',imports:[FormsModule,RouterLink,EntityGridComponent,AgGridAngular,MobileListComponent,ClearSearchComponent],template:`
+@Component({selector:'fr-cart',imports:[IconComponent,GridSizingDirective,FormsModule,RouterLink,EntityGridComponent,AgGridAngular,MobileListComponent,ClearSearchComponent],template:`
  <div class="page-heading"><div><h1>{{editingId?'Modifica rimborso #'+editingId:'Bozza rimborso'}}</h1><p class="dashboard-subtitle">Rivedi le iscrizioni e registra l’emissione dei rimborsi.</p></div></div>
  @if(initializing()){<p class="load-note" role="status">Caricamento bozza…</p>}@else{
  <p>{{rows().length}} iscrizioni nella stagione selezionata · {{portal.cart().length}} totali nella bozza rimborso.</p>
@@ -34,7 +36,7 @@ export class AthletePaymentComponent {params:any;agInit(p:any){this.params=p;}re
    <label>Ripartizione doppi<select [ngModel]="allocation()" (ngModelChange)="allocation.set($event)" aria-label="Ripartizione doppi"><option value="half">Metà per atleta</option><option value="first">Tutta al primo atleta</option><option value="second">Tutta al secondo atleta</option></select></label>
    <label class="wide-field">Note generali<textarea [(ngModel)]="options.notes" maxlength="2000" rows="4"></textarea></label>
   </section>
-  @if(editingId){<details class="refund-available" (toggle)="addingOpen.set($any($event.target).open)"><summary>Aggiungi iscrizione <span>({{available().length}} disponibili)</span></summary>@if(addingOpen()){<div class="refund-available-content"><p class="grid-help">Il + aggiunge l’iscrizione a questo rimborso. Le modifiche saranno registrate con “Salva modifiche”.</p><fr-entity-grid kind="entries" [rows]="available()" viewKey="refund-edit-available" label="iscrizioni disponibili" [onAdd]="addAvailable" /></div>}</details>}
+  @if(editingId){<details class="refund-available" (toggle)="addingOpen.set($any($event.target).open)"><summary><fr-icon class="disclosure-icon" name="chevron-right" [size]="16" />Aggiungi iscrizione <span>({{available().length}} disponibili)</span></summary>@if(addingOpen()){<div class="refund-available-content"><p class="grid-help">Il + aggiunge l’iscrizione a questo rimborso. Le modifiche saranno registrate con “Salva modifiche”.</p><fr-entity-grid kind="entries" [rows]="available()" viewKey="refund-edit-available" label="iscrizioni disponibili" [onAdd]="addAvailable" /></div>}</details>}
 
   <section class="refund-settings"><h2 class="wide-field">Quote e rettifiche</h2>
    @for(row of rows();track row.id){<label class="wide-field">{{row.athlete1_name}} · {{row.race_name}}<select [ngModel]="options.line_modes?.[row.id]||'reimburse'" (ngModelChange)="setMode(row.id,$event)"><option value="reimburse">Quota da rimborsare</option><option value="deduct">Già pagata dalla società: detrai dal contributo</option></select></label>}
@@ -45,7 +47,7 @@ export class AthletePaymentComponent {params:any;agInit(p:any){this.params=p;}re
   <h2>Riepilogo rimborsi</h2>
   @if(responsive.mobile()){
    <div class="mobile-search-row"><label class="mobile-recap-search">Cerca nel recap<input type="search" [value]="view.search()" (input)="view.setSearch($any($event.target).value)"></label><fr-search-clear (clear)="view.setSearch('')" /></div><fr-mobile-list [rows]="athletes()" [search]="view.search()" label="Recap per atleta" [sort]="athleteSort"><ng-template let-row><article class="mobile-card"><h3><a [routerLink]="['/giocatori',playerKey(row.name,row.card==='—'?null:row.card)]">{{row.name}} ({{row.card}})</a></h3><dl class="card-fields"><dt>Iscrizioni</dt><dd>{{row.quotes}}</dd><dt>Da rimborsare</dt><dd>{{money(row.pending_cents)}}</dd></dl><label>Modalità pagamento<select class="athlete-payment-select" [attr.aria-label]="'Modalità pagamento '+row.name" [ngModel]="row.payment_method" (ngModelChange)="setPayment(row.key,$event)" [disabled]="portal.data.locked()"><option value="transfer">Bonifico</option><option value="cash">Contanti</option></select></label></article></ng-template></fr-mobile-list>
-  }@else{  <ag-grid-angular id="cart-athletes-grid" class="athlete-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="athletes()" [columnDefs]="athleteColumns" [defaultColDef]="defaults" [autoSizeStrategy]="view.initialState?.columnSizing?undefined:autoSize" [initialState]="view.initialState" (stateUpdated)="!responsive.mobile() && view.updated($event)" (gridReady)="recapApi=$event.api;view.restore($event.api)" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" /> }
+  }@else{  <ag-grid-angular id="cart-athletes-grid" class="athlete-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="athletes()" [columnDefs]="athleteColumns" [defaultColDef]="defaults" [frGridSizing]="view" [initialState]="view.initialState" (stateUpdated)="!responsive.mobile() && view.updated($event)" (gridReady)="recapApi=$event.api;view.restore($event.api)" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" /> }
 
   <p class="grid-help">Emetti registra il rimborso e segna le quote come rimborsate. Dopo l’emissione scegli come stampare le ricevute dal dettaglio del rimborso. Vengono emesse solo le iscrizioni della stagione selezionata; le altre rimangono nella bozza rimborso.</p>
   @if(editingId){<a class="secondary-button" [routerLink]="'/rimborsi/'+editingId">Annulla modifiche</a>}
@@ -79,8 +81,7 @@ export class CartComponent implements OnInit, OnDestroy {
  readonly athletes=computed(()=>{this.revision();return settlement(this.rows(),{...this.options,allocation:this.allocation()});});
  readonly paymentTotals=computed(()=>paymentTotals(this.athletes()));
  readonly theme=gridTheme;readonly defaults:any=defaultColDef;readonly view=new TableView('portal-cart-athletes');
- readonly autoSize:any={type:'fitCellContents',defaultMaxWidth:420};
- readonly athleteColumns:any[]=[{field:'name',headerName:'Atleta',flex:2,minWidth:220,valueFormatter:(p:any)=>p.data.name+' ('+p.data.card+')'},{field:'quotes',headerName:'Iscrizioni'},{field:'pending_cents',headerName:'Da rimborsare',valueFormatter:(p:any)=>money(p.value)},{field:'payment_method',headerName:'Modalità pagamento',minWidth:180,filterValueGetter:(p:any)=>p.data.payment_method==='cash'?'Contanti':'Bonifico',cellRenderer:AthletePaymentComponent,cellRendererParams:{change:(key:string,method:PaymentMethod)=>this.setPayment(key,method),disabled:()=>this.portal.data.locked()}}];
+ readonly athleteColumns:any[]=[{field:'name',headerName:'Atleta',minWidth:64,valueFormatter:(p:any)=>p.data.name+' ('+p.data.card+')'},{field:'quotes',headerName:'Iscrizioni'},{field:'pending_cents',headerName:'Da rimborsare',valueFormatter:(p:any)=>money(p.value)},{field:'payment_method',headerName:'Modalità pagamento',minWidth:64,filterValueGetter:(p:any)=>p.data.payment_method==='cash'?'Contanti':'Bonifico',cellRenderer:AthletePaymentComponent,cellRendererParams:{change:(key:string,method:PaymentMethod)=>this.setPayment(key,method),disabled:()=>this.portal.data.locked()}}];
  options:ReceiptOptions={issuer:'',date:new Date().toLocaleDateString('en-CA'),notes:'',format:'total',allocation:'half'};
  recapApi?:import('ag-grid-community').GridApi;private unwatch=()=>{};ngOnDestroy(){this.unwatch();}
  private requestKey=crypto.randomUUID().replaceAll('-','');
