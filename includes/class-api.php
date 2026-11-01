@@ -9,6 +9,7 @@ final class FR_Api {
 
     public function init(): void {
         add_action('rest_api_init', [$this, 'routes']);
+        add_filter('rest_pre_serve_request',[$this,'serve_original_pdf'],10,4);
         add_filter('rest_post_dispatch', [$this, 'no_cache'], 10, 3);
     }
 
@@ -38,6 +39,18 @@ final class FR_Api {
             'methods' => 'POST',
             'callback' => [$this->auth, 'logout'],
             'permission_callback' => [$this->auth, 'permission'],
+        ]);
+        register_rest_route(self::NS, '/profilo/tabelle', [
+            'methods' => 'PUT', 'permission_callback' => [$this->auth, 'permission'],
+            'args' => [
+                'auto_height' => ['required' => true, 'type' => 'boolean'],
+                'density' => ['required' => true, 'type' => 'string', 'enum' => ['standard', 'compact']],
+            ],
+            'callback' => function (WP_REST_Request $request) {
+                $user_id = (int) $this->auth->current()['id'];
+                update_option('fr_grid_preferences_' . $user_id, ['auto_height' => (bool) $request['auto_height'], 'density' => $request['density']], false);
+                return FR_Auth::grid_preferences($user_id);
+            },
         ]);
         foreach (['gare', 'iscrizioni'] as $kind) {
             register_rest_route(self::NS, '/' . $kind, [
@@ -88,6 +101,8 @@ final class FR_Api {
             ['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'args'=>array_merge($selection_args,['request_key'=>['required'=>true,'type'=>'string'],'prices'=>['required'=>true,'type'=>'object'],'options'=>['required'=>true,'type'=>'object']]),'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->issue($current_user(),$r->get_json_params()))],
         ]);
         register_rest_route(self::NS,'/emissioni/(?P<id>\d+)',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->emission((int)$r['id']))]);
+        register_rest_route(self::NS,'/emissioni/(?P<id>\d+)/ricevute',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->documents((int)$r['id']))]);
+        register_rest_route(self::NS,'/emissioni/(?P<id>\d+)/ricevute/(?P<receipt>[a-f0-9]{64})',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(function()use($workflow,$r){$bytes=$workflow->original_pdf((int)$r['id'],$r['receipt']);return new WP_REST_Response($bytes,200,['Content-Type'=>'application/pdf','Content-Disposition'=>'inline; filename="ricevuta-originale.pdf"']);})]);
         register_rest_route(self::NS, '/sincronizzazione/stato', [
             'methods' => 'GET', 'permission_callback' => [$this->auth, 'permission'],
             'callback' => fn() => FR_Sync_Service::status(),
@@ -100,6 +115,10 @@ final class FR_Api {
             'methods' => 'POST', 'permission_callback' => [$this->auth, 'permission'],
             'callback' => fn(WP_REST_Request $request) => $this->attempt(fn() => (new FR_Sync_Service($this->data))->step($request['job_id'], (int) $this->auth->current()['id'])),
         ]);
+    }
+
+    public function serve_original_pdf($served,$response,$request,$server) {
+        if(!$served&&preg_match('~^/'.self::NS.'/emissioni/\d+/ricevute/[a-f0-9]{64}$~D',$request->get_route())&&$response->get_status()===200&&($response->get_headers()['Content-Type']??'')==='application/pdf') {echo $response->get_data();return true;}return $served;
     }
 
     private function attempt(callable $callback) {

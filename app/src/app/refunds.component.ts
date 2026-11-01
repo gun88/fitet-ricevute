@@ -1,3 +1,4 @@
+import { GridPresentation } from './grid-presentation.service';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -24,19 +25,20 @@ import { Allocation, AthleteSummary, athleteSummary, pendingTotal } from './refu
       <label class="wide-field">Note facoltative<input name="notes" [(ngModel)]="notes" maxlength="500" placeholder="Es. rimborso quote tornei ottobre"></label>
     </section>
     <h2 class="recap-heading">Recap cumulativo</h2>
-    <ag-grid-angular id="refund-grid" class="recap-grid" [theme]="theme" [rowData]="rows()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [initialState]="recapView.initialState" (stateUpdated)="recapView.updated($event)" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" />
+    <ag-grid-angular id="refund-grid" class="recap-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="rows()" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [initialState]="recapView.initialState" (stateUpdated)="recapView.updated($event)" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" />
     <div class="bulk-actions recap-actions"><button class="secondary-button" (click)="markAll(true)" [disabled]="data.locked() || loading() || !pendingCount()">Segna tutte rimborsate</button><button class="text-button" (click)="markAll(false)" [disabled]="data.locked() || loading() || !paidCount()">Segna tutte da rimborsare</button></div>
     <h2 class="recap-heading">Recap per atleta</h2>
-    <ag-grid-angular id="athlete-grid" class="athlete-grid" [theme]="theme" [rowData]="athletes()" [initialState]="athleteView.initialState" (stateUpdated)="athleteView.updated($event)" [columnDefs]="athleteColumns" [defaultColDef]="summaryDefaults" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" />
+    <ag-grid-angular id="athlete-grid" class="athlete-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="athletes()" [initialState]="athleteView.initialState" (stateUpdated)="athleteView.updated($event)" [columnDefs]="athleteColumns" [defaultColDef]="summaryDefaults" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" />
     <p class="grid-help">Le quote già rimborsate sono escluse dai nuovi PDF. La generazione non cambia lo stato del rimborso. Nel doppio, un eventuale centesimo dispari è assegnato al primo atleta; la marcatura riguarda l’intera coppia.</p>
     @if (total() === null) { <p class="error-box" role="alert">Mancano delle quote: definisci prima i prezzi nella pagina Prezzi tornei.</p> }
     <div class="issue-footer"><span>{{ pendingCount() }} quote da inserire · {{ money(total()) }}</span><button class="sync-button" (click)="generate()" [disabled]="data.locked() || loading() || total() === null || !pendingCount() || !issuer.trim() || !issueDate">{{ data.busy() ? 'Preparazione…' : 'Genera PDF' }}</button></div>
   }
 ` })
 export class RefundsComponent implements OnInit {
+ readonly presentation=inject(GridPresentation);
   readonly data = inject(DataService); private readonly auth = inject(AuthService);
   readonly theme = gridTheme; readonly defaults = defaultColDef; readonly rowId = getRowId;
-  readonly summaryDefaults = { sortable: true, filter: true, floatingFilter: true, resizable: true, minWidth: 130 };
+  readonly summaryDefaults = { sortable: true, filter: true, floatingFilter: false, resizable: true, minWidth: 130 };
   readonly recapView = new TableView('refund-recap'); readonly athleteView = new TableView('refund-athletes');
   readonly rows = signal<Row[]>([]); readonly loading = signal(true); readonly allocation = signal<Allocation>('half');
   readonly athletes = computed(() => athleteSummary(this.rows(), this.allocation()));

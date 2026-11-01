@@ -67,11 +67,12 @@ final class FR_Data_Repository {
                 $this->check($wpdb->update($entries, ['active' => 0], ['race_id' => (int) $race_id]));
             }
             $this->check($wpdb->update($gare, ['active' => 0], ['tournament_key' => $source['tournament_key'], 'society_code' => $source['society_code']]));
+            $poster=$wpdb->get_row($wpdb->prepare("SELECT poster_ref,poster_year FROM $gare WHERE society_code=%s AND source_committee=%s AND source_tournament=%s AND tournament_date=%s AND poster_ref<>'' ORDER BY id DESC LIMIT 1",$source['society_code'],$source['params']['COMITATO']??'',$source['params']['TORNEO'],$receipt['metadata']['tournament_date']),ARRAY_A)?:[];
             $races = [];
             $source_rows = $receipt['entries'] ?: [['race_key' => hash('sha256', 'empty-tournament'), 'race_name' => 'Nessuna iscrizione', 'race_kind' => 'empty']];
             foreach ($source_rows as $entry) {
                 if (!isset($races[$entry['race_key']])) {
-                    $record = array_merge($receipt['metadata'], [
+                    $record = array_merge($receipt['metadata'], $poster, [
                         'tournament_key' => $source['tournament_key'], 'tournament_ref' => $source['tournament_ref'],
                         'race_key' => $entry['race_key'], 'race_name' => $entry['race_name'], 'race_kind' => $entry['race_kind'],
                         'source_year' => $source['params']['ANNO'], 'source_committee' => $source['params']['COMITATO'] ?? '',
@@ -106,6 +107,17 @@ final class FR_Data_Repository {
         } catch (Throwable $error) { $wpdb->query('ROLLBACK'); throw $error; }
     }
 
+    public function poster_candidates(string $society): array {
+        global $wpdb;$table=self::table('gare');$rows=$wpdb->get_results($wpdb->prepare("SELECT source_committee,source_tournament,source_year,tournament_date,poster_ref,poster_year FROM $table WHERE active=1 AND society_code=%s AND source_committee<>'' ORDER BY tournament_date DESC,id DESC",$society),ARRAY_A);if($wpdb->last_error)throw new RuntimeException('Lettura tornei non riuscita.');$result=[];$years=[];foreach($rows as $r){$year=$r['source_year']?:$r['poster_year'];if(FR_Tournament_Poster::current($r['tournament_date'])&&$year!==''&&ctype_digit($year))$years[$year]=true;}
+        foreach($rows as $row){if((ltrim($row['source_committee'],'0')?:'0')==='30')continue;if(FR_Tournament_Poster::current($row['tournament_date'])&&$row['source_year']===''&&$row['poster_year']===''&&count($years)===1)$row['source_year']=(string)array_key_first($years);if(!FR_Tournament_Poster::current($row['tournament_date'])&&($row['poster_ref']!==''||($row['source_year']===''&&$row['poster_year']==='')))continue;$key=$row['source_committee'].':'.$row['source_tournament'].':'.$row['tournament_date'];$result[$key]=$row;}
+        return array_values($result);
+    }
+    public function save_poster(array $row,array $poster,string $society): void {
+        global $wpdb;$table=self::table('gare');
+        if(!FR_Tournament_Poster::valid_ref($poster['poster_ref'],$row['source_committee'],$row['source_tournament'])||($poster['poster_year']!==''&&!ctype_digit($poster['poster_year']))||($poster['poster_year']===''&&!FR_Tournament_Poster::current($row['tournament_date'])))throw new RuntimeException('Riferimento locandina non valido.');
+        $this->check($wpdb->update($table,$poster,['society_code'=>$society,'source_committee'=>$row['source_committee'],'source_tournament'=>$row['source_tournament'],'tournament_date'=>$row['tournament_date']]));
+    }
+
     private function scope(string $search): array {
         global $wpdb;
         $where = 'g.active = 1'; $params = [];
@@ -125,7 +137,7 @@ final class FR_Data_Repository {
         $price_columns = 'p.automatic_cents, p.manual_cents, p.auto_basis, COALESCE(p.manual_cents,p.automatic_cents) AS price_cents';
         if ($kind === 'gare') {
             $from = "$gare g LEFT JOIN $prices p ON p.race_id = g.id";
-            $select = "g.id, g.society_code, g.source_committee, g.committee_name, g.tournament_key, g.tournament_ref, g.tournament_name, g.tournament_date, g.tournament_place, g.race_name, g.race_kind, g.receipt_total_cents, g.receipt_entries, g.synced_at, (g.pdf_file<>'') AS has_receipt, $price_columns, (SELECT COUNT(*) FROM $entries e WHERE e.race_id = g.id AND e.active = 1) AS entry_count";
+            $select = "g.id, g.society_code, g.source_committee, g.source_tournament, g.source_year, g.poster_ref, g.poster_year, g.committee_name, g.tournament_key, g.tournament_ref, g.tournament_name, g.tournament_date, g.tournament_place, g.race_name, g.race_kind, g.receipt_total_cents, g.receipt_entries, g.synced_at, (g.pdf_file<>'') AS has_receipt, $price_columns, (SELECT COUNT(*) FROM $entries e WHERE e.race_id = g.id AND e.active = 1) AS entry_count";
             $order = 'g.tournament_date DESC, g.id DESC';
         } else {
             $from = "$entries e JOIN $gare g ON e.race_id = g.id LEFT JOIN $prices p ON p.race_id = e.race_id";
@@ -153,6 +165,7 @@ final class FR_Data_Repository {
             unset($row);
         }
         foreach ($items as &$item) {
+            if($kind==='gare')$item['poster_url']=FR_Tournament_Poster::url($item);
             $item['tournament_scope'] = self::tournament_scope($item['source_committee']);
             $item['committee_label'] = self::committee_label($item['source_committee']);
         }

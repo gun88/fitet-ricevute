@@ -1,6 +1,6 @@
 # FITET Ricevute
 
-Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.10.0**.
+Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.12.1**.
 
 ## Pagine del portale
 
@@ -64,11 +64,20 @@ La richiesta è protetta da sessione, CSRF, controllo società, confronto dei pr
 richieste concorrenti o ripetute non devono produrre due emissioni per lo stesso invio.
 Con una stagione specifica vengono emesse solo le quote visibili; le altre restano nella bozza.
 
-Nel dettaglio, **Stampa ricevute** offre **Cumulativa**, **Per singolo atleta** o **Tutto insieme (ZIP)**.
-Il formato non si sceglie durante l’emissione. Si può ristampare cambiando modalità senza registrare
-un nuovo rimborso. I PDF sono prodotti localmente dal browser; sul server rimangono i dati per rigenerarli.
-Prezzi, note, firma e timbro dell’emissione sono snapshot: successive modifiche non cambiano lo storico.
-Se la stampa si interrompe, il rimborso resta disponibile nel registro.
+Nel dettaglio sono disponibili **Stampa rimborso (PDF)**, **Esporta Excel** e **Scarica PDF + Excel (ZIP)**.
+Il PDF è unico: riepilogo di quanto consegnare, dettaglio quote, indice e ricevute originali allegate
+una sola volta ciascuna. Non vengono prodotti PDF individuali. L’Excel contiene Quanto consegnare,
+Dettaglio quote e Ricevute originali, con importi numerici e totali calcolati dal dettaglio.
+I totali generali sono esterni alle tabelle e alle colonne degli importi, così anche sommare un’intera
+colonna non duplica gli importi. Le righe di dettaglio non contengono subtotali.
+
+Gli export sono prodotti nel browser. Prezzi, note, firma, timbro e riferimenti delle ricevute delle nuove
+emissioni sono snapshot: modifiche successive non cambiano lo storico. Gli originali vengono letti
+tramite API autenticate dall’archivio locale e verificati con SHA-256 prima di essere uniti.
+Se un originale manca o è illeggibile, il PDF completo non viene prodotto; l’Excel resta disponibile
+con il documento segnalato come mancante e senza numeri di pagina. Le emissioni precedenti prive di
+riferimenti vengono associate ai documenti correnti del torneo e mostrano una nota che richiede
+la verifica della corrispondenza. Nessun PDF viene riscaricato da FITeT durante l’esportazione.
 
 Le marcature “rimborsata” delle versioni precedenti sono conservate, senza date di emissione inventate.
 Il registro parte dalle emissioni effettuate con la 0.7.0. Le API precedenti di marcatura operativa
@@ -83,7 +92,8 @@ Il backend effettua un solo login per leggere:
 - `/login/iscrizioni/lista_partecipazione_tornei.asp` (ricevute della società)
 
 I tornei sono salvati dai cataloghi; solo i PDF effettivamente elencati nel riepilogo partecipazioni vengono
-scaricati, senza autenticazione/cookie e senza aprire un dettaglio per ogni torneo. Un PDF per avanzamento API.
+scaricati, senza autenticazione/cookie e senza aprire un dettaglio extranet per ogni torneo. Un PDF ricevuta per avanzamento API.
+Segue una fase pubblica per le locandine, con una sola pagina HTML per avanzamento.
 File in `wp-content/uploads/fitet-ricevute/ricevute-pdf/`. Angular deve restare aperto per proseguire gli avanzamenti.
 Prezzi manuali e stato dei rimborsi sono conservati. Le quote dei singolari omogenei si inferiscono dal totale;
 le ricevute miste o con divisione non esatta richiedono prezzi manuali. I doppi sono per coppia.
@@ -91,7 +101,7 @@ le ricevute miste o con divisione non esatta richiedono prezzi manuali. I doppi 
 I cataloghi danno i tornei, non l'elenco completo delle gare offerte: vengono mostrate solo le gare note
 dalle ricevute, senza inventare gare per i tornei con zero iscrizioni. Il formato di un PDF reale con doppi
 resta da verificare; le iscrizioni a squadre non vuote richiedono un parser dedicato.
-L'import/export Excel resta da implementare.
+L’importazione Excel e l’esportazione generale dei dati restano da implementare; l’export Excel dei rimborsi è disponibile.
 
 ## Installazione e configurazione
 
@@ -173,7 +183,7 @@ non utilizzare il portale mentre è in corso.
 
 Limiti attuali: archivio compresso 16 MB (o limite upload PHP inferiore), contenuto non compresso 64 MB,
 100.000 righe totali, PDF originali 32 MB complessivi e 3 MB per file.
-Il backup non è un file Excel: import/export Excel rimane una funzione distinta da implementare.
+Il backup non è un file Excel ed è distinto dall’esportazione Excel dei rimborsi. L’importazione Excel rimane da implementare.
 
 
 ## Card mobili e infinite scroll (0.10.0)
@@ -193,3 +203,77 @@ La ricerca o il cambio di dataset ripartono dal primo batch.
 `tests/mobile-cards.cjs` verifica infinite scroll su 65 tornei simulati, ricerca completa,
 preferenze desktop e operazioni mobili. Setup/ripristino con `admin-ui-fixture.php`.
 Le vecchie suite che presuppongono una griglia mobile sono storiche.
+
+
+## Conteggio rimborsi e ricerca mobile (0.10.1)
+
+Tornei e Gare mostrano un numero nella colonna Rimborsi: conteggio delle iscrizioni segnate
+come rimborsate della risorsa, indipendente dalla ricerca della tabella. Non conta PDF o emissioni
+cumulative e non indica un obbligo di rimborso. Per torneo, una partecipazione a ciascuna gara
+è una quota distinta; per gara si contano solo le proprie iscrizioni. I doppi conservano la loro unità
+originale di iscrizione, senza cambiare la ripartizione delle ricevute.
+Solo i dettagli mostrano a fianco del conteggio nessun/parziale/totale rimborso e la percentuale
+sul totale delle iscrizioni, con al massimo un decimale. Zero iscrizioni restituisce 0 e 0%.
+
+I titoli delle card linkano al dettaglio di torneo, gara, rimborso o giocatore; sulle iscrizioni,
+i nomi degli atleti sono collegamenti ai rispettivi giocatori. Anche i recap hanno titoli cliccabili.
+Ricerca mobile e pulsante di azzeramento con icona sono affiancati, con nome accessibile e
+un’area di tocco da 44 px. L’azzeramento mobile riguarda la ricerca generale e conserva i filtri desktop.
+
+
+## Locandine esterne (0.11.0)
+
+La tabella Tornei, le card e il dettaglio mostrano **Visualizza locandina**, in una nuova scheda
+con `noopener noreferrer`. Le locandine non vengono scaricate, archiviate, incorporate o controllate
+con richieste HEAD. Il browser apre direttamente la risorsa FITeT solo dopo il clic; se il documento
+non esiste più, viene mostrata la risposta del sito esterno. I tornei nazionali (comitato 30) non
+prevedono questo collegamento. Per un riferimento sconosciuto compare “Non disponibile”.
+
+Alla prossima sincronizzazione il plugin cerca i riferimenti negli HTML pubblici:
+- stagione corrente: `/risultati/tornei/elenco_gare.php?IDT=...&COM=...`;
+- archivio: `/risultati/archivio/elenco_gare_tornei.asp?ANNO=...&COM=...&IDT=...`.
+
+Vengono salvati `poster_ref` (comitato_torneo_idIncrementale) e `poster_year` (ANNO osservato),
+conservati nelle risincronizzazioni e nei backup. La parte incrementale non viene calcolata né cercata
+per tentativi. Il percorso esterno è `tabelloni/riferimento.pdf` per la stagione corrente e
+`tabelloni/ANNO/riferimento.pdf` per le precedenti. Il cambio stagione è quello già usato nell’app,
+al 1° luglio; l’identificativo federale ANNO viene osservato nei dati, mai ricavato dal calendario.
+
+I tornei senza ricevuta sono inclusi nella ricerca. Se la pagina non riporta ANNO, viene usato solo
+un identificativo corrente univoco già osservato nei dati della società; in assenza di questa informazione
+si conserva comunque il riferimento e lo si rende utilizzabile nella stagione corrente. Per costruire
+il percorso storico occorre conoscere ANNO. Gli storici senza riferimento vengono cercati nell’archivio
+quando ANNO è disponibile. Un errore HTTP o un link mancante non cancella un riferimento già salvato.
+
+La ricerca locandine è progressiva, dopo le ricevute, senza login/cookie e senza seguire redirect.
+L’avanzamento distingue la fase locandine da quella delle ricevute; Angular deve restare aperto.
+Non serve un’ulteriore autenticazione FITeT per questa fase. I backup precedenti restano importabili,
+con i nuovi campi inizialmente vuoti.
+
+
+## Esportazione rimborsi 0.12.0
+
+- Una riga di dettaglio per beneficiario e quota attribuita; per i doppi si conserva metà/primo/secondo,
+  compreso il centesimo dispari al primo. Atleta/Coppia conserva l’iscrizione originale.
+- Riferimenti R01, R02… univoci per originale, note per quota e note generali. Il PDF riporta un indice
+  con le pagine fisiche degli allegati; l’Excel riusa gli stessi riferimenti e intervalli.
+- Foglio Quanto consegnare: una riga per beneficiario e formule SUMIFS dal dettaglio. Dettaglio quote:
+  tabella nativa ordinabile/filtrabile, date e importi numerici, senza subtotali. Ricevute originali:
+  indice, stato, pagine del PDF completo, hash e URL origine.
+- Le tabelle Excel hanno esplicitamente disattivate le righe totali. Le formule includono risultati
+  memorizzati e ricalcolo all’apertura; la modifica di una quota aggiorna il riepilogo. I nuovi
+  beneficiari aggiunti manualmente al dettaglio richiedono una corrispondente riga nel riepilogo.
+- Formule e metadati Excel vengono verificati anche con un motore indipendente; merge PDF senza
+  rasterizzare gli originali. Firma e timbro sono applicati al recap e non alle ricevute originali.
+
+API nuove: `GET /emissioni/{id}/ricevute` (manifesto senza nomi fisici dell’archivio) e
+`GET /emissioni/{id}/ricevute/{sha256}` (PDF binario autenticato e non memorizzabile in cache).
+`options_json.original_receipts` conserva file/hash e metadati canonici sul server; gli snapshot
+iscrizione conservano `receipt_id`. Il backup completo include i riferimenti e i file archiviati.
+
+Suite: `tests/refund-documents.php`, `tests/refund-export.cjs`, `tests/refund-export-ui.cjs`.
+Setup/ripristino browser con `tests/export-ui-fixture.php` e relativo comando `clean`.
+
+## Tabelle e profilo 0.12.1
+
+Nel profilo ogni utente sceglie altezza automatica (on/off) e spaziatura Standard/Compatta per tutte le griglie desktop. Le preferenze sono salvate sul server per l’account del portale; non cambiano le card mobile. I filtri di colonna si aprono dalle icone nelle intestazioni, senza riga aggiuntiva; le colonne Azioni non sono filtrabili. Eliminati i link ridondanti nelle intestazioni della bozza e dei dettagli torneo/gara, e il filtro delle sole gare con iscrizioni.

@@ -58,6 +58,7 @@ final class FR_Refund_Workflow {
         $row['id']=(int)$row['id'];$row['user_id']=(int)$row['user_id'];$row['total_cents']=(int)$row['total_cents'];
         $row['created_at']=str_replace(' ','T',$row['created_at']).'Z';
         $row['items']=json_decode($row['items_json'],true);$row['options']=json_decode($row['options_json'],true);
+        if(isset($row['options']['original_receipts']))foreach($row['options']['original_receipts'] as &$doc)unset($doc['file']);unset($doc);
         unset($row['items_json'],$row['options_json'],$row['request_key']);return $row;
     }
     public function emissions(int $page): array {
@@ -69,6 +70,15 @@ final class FR_Refund_Workflow {
         global $wpdb;$table=$this->table('emissioni');
         $row=$wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id=%d AND society_code=%s",$id,$this->society()),ARRAY_A);
         if(!$row)throw new RuntimeException('Rimborso non disponibile.');return $this->decode($row);
+    }
+    private function document_bundle(int $id): array {
+        global $wpdb;$table=$this->table('emissioni');$row=$wpdb->get_row($wpdb->prepare("SELECT items_json,options_json FROM $table WHERE id=%d AND society_code=%s",$id,$this->society()),ARRAY_A);
+        if(!$row)throw new RuntimeException('Rimborso non disponibile.');return FR_Refund_Documents::bundle(json_decode($row['items_json'],true),json_decode($row['options_json'],true),$this->society());
+    }
+    public function documents(int $id): array {return FR_Refund_Documents::manifest($this->document_bundle($id));}
+    public function original_pdf(int $id,string $receipt): string {
+        foreach($this->document_bundle($id)['documents'] as $doc)if(hash_equals($doc['id'],$receipt))return FR_Refund_Documents::read($doc);
+        throw new RuntimeException('Ricevuta non inclusa in questo rimborso.');
     }
     public function issue(int $user,array $input): array {
         global $wpdb;$society=$this->society();$emissions=$this->table('emissioni');$cart=$this->table('carrello');$paid=FR_Data_Repository::table('rimborsi');
@@ -97,7 +107,7 @@ final class FR_Refund_Workflow {
                 $cart_ids=array_map('intval',$wpdb->get_col($wpdb->prepare("SELECT entry_id FROM $cart WHERE user_id=%d AND society_code=%s",$user,$society)));
                 if(array_diff($ids,$cart_ids))throw new RuntimeException('La selezione non è più nella tua bozza rimborso. Aggiorna la pagina.');
                 $line_notes=[];foreach($wpdb->get_results($wpdb->prepare("SELECT entry_id,notes FROM $cart WHERE user_id=%d AND society_code=%s",$user,$society),ARRAY_A) as $line)$line_notes[(int)$line['entry_id']]=$line['notes']??'';
-                $rows=$this->data->refund_preview($ids)['items'];$total=0;$now=current_time('mysql',true);
+                $rows=$this->data->refund_preview($ids)['items'];$options['original_receipts']=FR_Refund_Documents::capture($rows,$society);$total=0;$now=current_time('mysql',true);
                 foreach($rows as &$row){
                     $id=(int)$row['id'];$amount=$row['price_cents'];$row['refund_notes']=$line_notes[$id]??'';
                     if((int)$row['reimbursed']||$amount===null)throw new RuntimeException('Quote già rimborsate o prive di prezzo: verifica la bozza rimborso.');

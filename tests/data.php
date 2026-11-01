@@ -66,7 +66,7 @@ $trace = get_option('fr_test_http_trace');
 check_data(!str_contains(serialize($trace), 'elimina_iscrizione'), 'discovery never follows observed destructive links');
 try { $sync->step($job['id'], 2); check_data(false, 'job ownership'); }
 catch (RuntimeException $e) { check_data(true, 'sync job is restricted to its creating user'); }
-$job = $sync->step($job['id'], 1);
+$job = $sync->step($job['id'], 1);while(!$job['done'])$job=$sync->step($job['id'],1);
 check_data($job['done'] && $job['imported'] === 1 && !$job['errors'], 'automatic backend login, discovery, download, parsing and persistence complete with fixture');
 $uploads = wp_upload_dir();
 check_data(is_file($uploads['basedir'] . '/fitet-ricevute/ricevute-pdf/' . $filename), 'PDF is saved under the requested uploads directory');

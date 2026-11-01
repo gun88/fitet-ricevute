@@ -19,14 +19,20 @@ final class FR_Sync_Service {
         $links = $scan['receipts'];
         $id = bin2hex(random_bytes(16));
         $job = ['id' => $id, 'user_id' => $user_id, 'society_code' => $society, 'links' => $links, 'data_generation'=>get_option('fitet_ricevute_data_generation',0),
-            'total' => count($links), 'processed' => 0, 'imported' => 0, 'errors' => [], 'done' => !$links];
+            'total' => count($links), 'processed' => 0, 'imported' => 0, 'errors' => [], 'poster_processed'=>0,'poster_total'=>0,'poster_found'=>0,'done'=>false];
+        if(!$links)$this->prepare_posters($job);
         set_transient('fr_sync_' . $id, $job, 20 * MINUTE_IN_SECONDS);
-        if (!$links) { update_option('fr_last_sync_' . hash('sha256', $society), gmdate('Y-m-d\TH:i:s\Z'), false); }
+        if ($job['done']) { update_option('fr_last_sync_' . hash('sha256', $society), gmdate('Y-m-d\TH:i:s\Z'), false); }
         return $this->public_job($job);
     }
 
     private function public_job(array $job): array {
-        return array_intersect_key($job, array_flip(['id', 'total', 'processed', 'imported', 'errors', 'done']));
+        $job['phase']=$job['processed']<$job['total']?'receipts':'posters';
+        return ['phase'=>$job['phase']]+array_intersect_key($job, array_flip(['id', 'total', 'processed', 'imported', 'errors', 'done', 'poster_processed','poster_total','poster_found']));
+    }
+
+    private function prepare_posters(array &$job): void {
+        $job['poster_targets']=$this->repository->poster_candidates($job['society_code']);$job['poster_total']=count($job['poster_targets']);$job['poster_processed']=0;$job['poster_found']=0;$job['done']=$job['poster_total']===0;
     }
 
     public function step(string $id, int $user_id): array {
@@ -39,11 +45,21 @@ final class FR_Sync_Service {
             if ((string) FR_Settings::all()['society_code'] !== $job['society_code']) { throw new RuntimeException('Codice società modificato: avvia una nuova sincronizzazione.'); }
             if(($job['data_generation']??0)!==get_option('fitet_ricevute_data_generation',0))throw new RuntimeException('Dati ripristinati: avvia una nuova sincronizzazione.');
             if ($job['done']) { return $this->public_job($job); }
-            $url = $job['links'][$job['processed']];
-            try { $this->download_import($url, $job['society_code']); $job['imported']++; }
-            catch (Throwable $error) { $job['errors'][] = ['receipt' => $job['processed'] + 1, 'message' => $error->getMessage()]; }
-            $job['processed']++;
-            $job['done'] = $job['processed'] >= $job['total'];
+            if($job['processed']<$job['total']){
+                $url=$job['links'][$job['processed']];
+                try{$this->download_import($url,$job['society_code']);$job['imported']++;}
+                catch(Throwable $error){$job['errors'][]=['receipt'=>$job['processed']+1,'message'=>$error->getMessage()];}
+                $job['processed']++;
+                if($job['processed']>=$job['total'])$this->prepare_posters($job);
+            }else{
+                if(!isset($job['poster_targets']))$this->prepare_posters($job);
+                if($job['poster_processed']<$job['poster_total']){
+                    $target=$job['poster_targets'][$job['poster_processed']];$poster=FR_Tournament_Poster::discover($target);
+                    if($poster){$this->repository->save_poster($target,$poster,$job['society_code']);$job['poster_found']++;}
+                    $job['poster_processed']++;
+                }
+                $job['done']=$job['poster_processed']>=$job['poster_total'];
+            }
             if ($job['done'] && !$job['errors']) {
                 update_option('fr_last_sync_' . hash('sha256', $job['society_code']), gmdate('Y-m-d\TH:i:s\Z'), false);
             }

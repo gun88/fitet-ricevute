@@ -261,3 +261,38 @@ Nessuna modifica alle tabelle o alle API. La vista mobile riusa righe e operazio
 IntersectionObserver aggiunge 20 card per batch. Ricerca e filtri di stagione precedono il limite
 di rendering. AG Grid viene smontato sulla vista mobile e ricreato sul desktop con le preferenze
 salvate, senza applicare i filtri per colonna alle card.
+
+
+## Locandine 0.11.0
+
+Due colonne in gare: `poster_ref varchar(100)` e `poster_year varchar(20)`, entrambe con default
+vuoto. Sono metadati del torneo replicati sulle gare, separati dai PDF originali delle ricevute.
+L’importazione trasferisce il riferimento da catalogo a ricevuta e alle nuove gare dello stesso
+comitato/ID/data; gli aggiornamenti senza metadati non lo cancellano. L’API gare espone `poster_url`
+calcolato con dominio fisso FITeT e controllo del riferimento. I nazionali restituiscono null.
+
+FR_Tournament_Poster legge solo i due endpoint HTML pubblici verificati, senza cookie/redirect,
+limite 1 MB e timeout 8 secondi. Accetta un solo PDF distinto osservato con comitato/torneo coerenti;
+i dati storici richiedono un percorso ANNO coerente. Niente richieste ai file PDF delle locandine.
+La coda della sincronizzazione si prepara dopo l’importazione delle ricevute, includendo il catalogo
+e gli storici senza riferimento. Per la stagione corrente i riferimenti possono essere aggiornati;
+quelli storici già salvati restano conservati. `phase`, `poster_processed`, `poster_total` e
+`poster_found` sono restituiti dallo stato del job. Il totale delle ricevute conserva il significato
+precedente. I backup v1 includono le nuove colonne; decode/restore aggiungono default vuoti ai vecchi.
+
+
+## Esportazione rimborsi 0.12.0
+
+Nessuna nuova tabella. L’emissione cattura il manifesto canonico `original_receipts` in options_json
+ed il riferimento receipt_id in ogni iscrizione, all’interno della transazione di emissione. I file
+sono gli originali nell’archivio uploads, identificati dall’hash di contenuto e conservati dalle
+sincronizzazioni. Le API pubblicano il manifesto senza nomi fisici; il PDF binario richiede la sessione,
+la società dell’emissione, l’inclusione nel manifesto, un percorso locale valido e l’hash corretto.
+I riferimenti inviati dal client vengono sempre sostituiti da quelli del server.
+
+Per vecchie emissioni senza manifesto, l’associazione viene ricostruita in sola lettura attraverso
+race_id e tournament_key verificati nella stessa società, dichiarandola legacy: non si presenta come
+uno snapshot storico garantito. Il browser raggruppa le quote per beneficiario e conserva gli importi
+paid_cents emessi; i totali devono coincidere con total_cents. L’Excel mantiene tabelle senza subtotali
+e formule SUMIFS con risultati memorizzati. PDF ed Excel sono generati sul client; gli originali sono
+copiati una volta per hash nel PDF finale. Le locandine restano esterne e non partecipano agli allegati.

@@ -43,11 +43,14 @@ final class FR_Backup {
         if($json===false||strlen($json)>self::MAX_RAW)throw new RuntimeException('Backup troppo grande (massimo 64 MB non compressi).');
         $gzip=gzencode($json,6);if($gzip===false||strlen($gzip)>self::MAX_FILE)throw new RuntimeException('Backup compresso troppo grande (massimo 16 MB).');return $gzip;
     }
+    private static function defaults(array $data): array {
+        if(is_array($data['tables']['gare']??null))foreach($data['tables']['gare'] as &$row)if(is_array($row))$row+=['poster_ref'=>'','poster_year'=>''];unset($row);return $data;
+    }
     public static function decode(string $bytes): array {
         if(strlen($bytes)>self::MAX_FILE)throw new RuntimeException('Backup troppo grande (massimo 16 MB compressi).');
         $json=@gzdecode($bytes,self::MAX_RAW+1);if($json===false||strlen($json)>self::MAX_RAW)throw new RuntimeException('Backup compresso non valido o troppo grande.');
         try{$data=json_decode($json,true,64,JSON_THROW_ON_ERROR);}catch(Throwable $error){throw new RuntimeException('Il backup non contiene JSON valido.');}
-        if(!is_array($data))throw new RuntimeException('Formato backup non valido.');self::validate($data);return $data;
+        if(!is_array($data))throw new RuntimeException('Formato backup non valido.'); $data=self::defaults($data);self::validate($data);return $data;
     }
     private static function json(string $value): array {try{$data=json_decode($value,true,64,JSON_THROW_ON_ERROR);}catch(Throwable $e){throw new RuntimeException('Campo JSON del backup non valido.');}if(!is_array($data))throw new RuntimeException('Dati strutturati del backup non validi.');return $data;}
     public static function validate(array $data): void {
@@ -115,7 +118,7 @@ final class FR_Backup {
         $result=[];foreach(self::TABLES as $name)$result[$name]=count($data['tables'][$name]);$result['pdf']=count($data['pdfs']);$result['pdf_mancanti']=count(array_filter(array_unique(array_column($data['tables']['gare'],'pdf_file')),fn($name)=>!isset($data['pdfs'][$name])));return $result;
     }
     public static function restore(array $data): void {
-        global $wpdb;self::validate($data);$lock='fr_backup_restore_lock';$old=get_option($lock);if($old&&time()-(int)$old>300)delete_option($lock);
+        global $wpdb;$data=self::defaults($data);self::validate($data);$lock='fr_backup_restore_lock';$old=get_option($lock);if($old&&time()-(int)$old>300)delete_option($lock);
         if(!add_option($lock,time(),'',false))throw new RuntimeException('Un ripristino è già in corso.');
         $created=[];$option_keys=[FR_Settings::OPTION,FR_Signature::OPTION,FR_Signature::STAMP_OPTION,'fitet_ricevute_data_generation'];
         try{

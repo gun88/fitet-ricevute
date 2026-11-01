@@ -17,6 +17,8 @@ CREATE TABLE {prefix}fitet_ricevute_gare (
     tournament_name text NOT NULL,
     tournament_date date NOT NULL,
     tournament_place varchar(255) NOT NULL,
+    poster_ref varchar(100) NOT NULL DEFAULT '',
+    poster_year varchar(20) NOT NULL DEFAULT '',
     committee_name varchar(255) NOT NULL,
     society_name varchar(255) NOT NULL,
     race_name text NOT NULL,

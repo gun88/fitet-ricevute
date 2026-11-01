@@ -136,9 +136,15 @@ final class FR_Auth {
                 'username' => $user['username'],
                 'display_name' => $user['display_name'],
             ],
+            'grid_preferences' => self::grid_preferences((int) $user['id']),
             'expires_at' => $expires,
             'csrf_token' => $this->csrf($token),
         ];
+    }
+
+    public static function grid_preferences(int $user_id): array {
+        $saved = get_option('fr_grid_preferences_' . $user_id, []);
+        return ['auto_height' => ($saved['auto_height'] ?? false) === true, 'density' => ($saved['density'] ?? '') === 'compact' ? 'compact' : 'standard'];
     }
 
     public function me(): array {

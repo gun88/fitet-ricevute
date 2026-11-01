@@ -1,10 +1,11 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { apiUrl } from './config';
 
 export interface User { id: number; username: string; display_name: string }
-export interface Session { user: User; expires_at: number; csrf_token: string }
+export interface GridPreferences { auto_height: boolean; density: 'standard'|'compact' }
+export interface Session { grid_preferences?: GridPreferences; user: User; expires_at: number; csrf_token: string }
 export interface PublicConfig { app_name: string; society_name: string; login_message: string; enabled: boolean }
 
 @Injectable({ providedIn: 'root' })
@@ -12,6 +13,12 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly session = signal<Session | null>(null);
   readonly user = () => this.session()?.user ?? null;
+  readonly gridPreferences = computed<GridPreferences>(() => this.session()?.grid_preferences ?? {auto_height:false,density:'standard'});
+  async saveGridPreferences(value: GridPreferences): Promise<void> {
+    const owner = this.user()?.id;
+    const saved = await firstValueFrom(this.http.put<GridPreferences>(apiUrl('profilo/tabelle'), value));
+    this.session.update(session => session && session.user.id === owner ? {...session,grid_preferences:saved} : session);
+  }
   readonly csrf = () => this.session()?.csrf_token ?? '';
 
   publicConfig(): Promise<PublicConfig> {

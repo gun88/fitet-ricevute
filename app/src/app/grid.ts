@@ -4,7 +4,7 @@ import { AllCommunityModule, ColDef, ICellRendererParams, ModuleRegistry, provid
 import { Row } from './data.service';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-provideGlobalGridOptions({ enableCellTextSelection: true, ensureDomOrder: true, localeText: {
+provideGlobalGridOptions({ suppressMenuHide: true, enableCellTextSelection: true, ensureDomOrder: true, localeText: {
   page: 'Pagina', more: 'altro', to: 'a', of: 'di', next: 'Successiva', last: 'Ultima', first: 'Prima', previous: 'Precedente', pageSizeSelectorLabel: 'Righe per pagina:',
   loadingOoo: 'Caricamento…', noRowsToShow: 'Nessuna riga da mostrare', noMatchingRows: 'Nessuna riga corrispondente', searchOoo: 'Cerca…', blanks: '(Vuote)',
   filterOoo: 'Filtra…', equals: 'Uguale a', notEqual: 'Diverso da', empty: 'Scegli un filtro',
@@ -15,7 +15,7 @@ provideGlobalGridOptions({ enableCellTextSelection: true, ensureDomOrder: true, 
   ariaFilterInput: 'Filtro', ariaSearch: 'Cerca', ariaFilterColumn: 'Filtra colonna', ariaSortableColumn: 'Colonna ordinabile',
 } });
 export const gridTheme = themeQuartz.withParams({ accentColor: '#24563d', backgroundColor: '#ffffff', headerBackgroundColor: '#f1f5ee', headerTextColor: '#365440', foregroundColor: '#263b2e', borderColor: '#dfe7dc', fontFamily: 'Arial, sans-serif', fontSize: 12, spacing: 8, wrapperBorderRadius: 10 });
-export const defaultColDef: ColDef<Row> = { sortable: true, filter: true, floatingFilter: true, resizable: true, minWidth: 120 };
+export const defaultColDef: ColDef<Row> = { sortable: true, filter: true, floatingFilter: false, suppressHeaderFilterButton: false, resizable: true, minWidth: 120 };
 export const getRowId = (params: { data: Row }) => String(params.data.id);
 
 interface ActionParams extends ICellRendererParams<Row> { label: (row: Row) => string; action: (row: Row) => void; disabled: (row: Row) => boolean }

@@ -7,6 +7,7 @@ import { apiUrl } from './config';
 export interface Row {
   refund_notes?: string;
   has_receipt?: boolean;
+  poster_url?: string|null; poster_ref?: string; poster_year?: string; source_tournament?: string; source_year?: string;
   id: number; race_id: number; society_code: string; tournament_key: string;
   source_committee: string; committee_name: string; committee_label: string; tournament_scope: 'national' | 'territorial' | 'unknown';
   tournament_name: string; tournament_date: string; tournament_place: string; tournament_ref: string;
@@ -19,7 +20,7 @@ export interface Row {
   reimbursed: boolean; paid_cents: number | null; refund_updated_at: string | null;
 }
 interface Listing { items: Row[]; page: number; total: number; per_page: number }
-export interface Job { id: string; total: number; processed: number; imported: number; done: boolean; errors: { receipt: number; message: string }[] }
+export interface Job { phase?:'receipts'|'posters';poster_total?:number;poster_processed?:number;poster_found?:number; id: string; total: number; processed: number; imported: number; done: boolean; errors: { receipt: number; message: string }[] }
 
 export { money, dateLabel, names, originLabel } from './format';
 
@@ -48,6 +49,7 @@ export class DataService {
   readonly syncProgress = computed(() => {
     const job = this.job();
     if (!job) return 0;
+    if(job.phase==='posters')return job.done?100:(job.poster_total?Math.floor((job.poster_processed||0)/job.poster_total*100):0);
     if (job.total <= 0) return job.done ? 100 : 0;
     return Math.max(0, Math.min(100, Math.floor(job.processed / job.total * 100)));
   });

@@ -10,12 +10,12 @@ import { money, dateLabel } from './format';
  <div class="page-heading"><div><h1>{{title}}</h1><p class="dashboard-subtitle">{{subtitle}}</p></div>
  @if(kind==='tournaments'){<div class="sync-controls"><button class="sync-button" [disabled]="portal.data.locked()||portal.season()===''" (click)="sync()">{{portal.data.syncing()?'Sincronizzazione…':'Sincronizza ricevute'}}</button><span class="last-sync">Ultima sincronizzazione: {{portal.data.lastSyncLabel()}}</span></div>}</div>
  @if(kind==='tournaments' && (portal.data.syncing() || portal.data.job())){
-  <div class="sync-progress notice"><div class="sync-progress-label" role="status"><span>@if(portal.data.job()){Ricevute elaborate: {{portal.data.job()!.processed}} / {{portal.data.job()!.total}}}@else{Accesso all’extranet e ricerca automatica delle ricevute…}</span>@if(portal.data.job()){<strong>{{portal.data.syncProgress()}}%</strong>}</div><progress max="100" [attr.value]="portal.data.job()?portal.data.syncProgress():null" aria-label="Avanzamento elaborazione ricevute"></progress></div>
+  <div class="sync-progress notice"><div class="sync-progress-label" role="status"><span>@if(portal.data.job()){@if(portal.data.job()!.phase==='posters'){Ricerca locandine: {{portal.data.job()!.poster_processed}} / {{portal.data.job()!.poster_total}} · }Ricevute elaborate: {{portal.data.job()!.processed}} / {{portal.data.job()!.total}}}@else{Accesso all’extranet e ricerca automatica delle ricevute…}</span>@if(portal.data.job()){<strong>{{portal.data.syncProgress()}}%</strong>}</div><progress max="100" [attr.value]="portal.data.job()?portal.data.syncProgress():null" aria-label="Avanzamento elaborazione ricevute"></progress></div>
  }
  @if(kind==='tournaments' && portal.data.job()?.errors?.length){<div class="error-box"><strong>Ricevute da verificare</strong><ul>@for(item of portal.data.job()!.errors;track item.receipt){<li>Ricevuta {{item.receipt}}: {{item.message}}</li>}</ul></div>}
  @if(query()?.get('torneo')||query()?.get('gara')){<p class="filter-context">Filtro: {{contextName()}} <a [routerLink]="kind==='races'?'/gare':'/iscrizioni'">Rimuovi filtro di navigazione</a></p>}
  <fr-entity-grid [kind]="kind" [rows]="rows()" [viewKey]="kind" [label]="title">
-  @if(kind==='tournaments'||kind==='races'){<label tableFilter class="check-field"><input type="checkbox" [checked]="onlyEntries()" (change)="setOnly($any($event.target).checked)">Mostra solo {{kind==='tournaments'?'tornei':'gare'}} con iscrizioni</label>}
+  @if(kind==='tournaments'){<label tableFilter class="check-field"><input type="checkbox" [checked]="onlyEntries()" (change)="setOnly($any($event.target).checked)">Mostra solo {{kind==='tournaments'?'tornei':'gare'}} con iscrizioni</label>}
  </fr-entity-grid>
 `})
 export class PortalPageComponent {
@@ -30,20 +30,24 @@ export class PortalPageComponent {
  readonly contextName=computed(()=>{const id=this.query()?.get('gara');return id?this.portal.data.races().find(r=>String(r.id)===id)?.race_name:this.portal.data.races().find(r=>r.tournament_key===this.query()?.get('torneo'))?.tournament_name;});
  readonly rows=computed(()=>{
   let rows:any[]=this.kind==='tournaments'?this.portal.tournaments():this.kind==='races'?this.portal.races():this.kind==='entries'?this.portal.entries():this.portal.history();
-  if((this.kind==='tournaments'||this.kind==='races')&&this.onlyEntries())rows=rows.filter(r=>Number(r.entry_count)>0);
+  if(this.kind==='tournaments'&&this.onlyEntries())rows=rows.filter(r=>Number(r.entry_count)>0);
   const tournament=this.query()?.get('torneo'),race=this.query()?.get('gara');
   if(tournament)rows=rows.filter(r=>r.tournament_key===tournament);if(race)rows=rows.filter(r=>String(r.race_id||r.id)===race);return rows;
  });
  async sync(){if(this.portal.season()==='')return;try{await this.portal.data.synchronize();await this.portal.refresh();}catch(error){this.portal.data.error.set(errorMessage(error));}}
 }
 @Component({selector:'fr-portal-detail',imports:[EntityGridComponent,RouterLink,FormsModule],template:`
- <div class="page-heading"><div><h1>{{title()}}</h1><p class="dashboard-subtitle">{{kind==='tournament'?'Dettaglio torneo':kind==='race'?'Dettaglio gara':kind==='player'?'Dettaglio giocatore':'Dettaglio rimborso'}}</p></div><a class="secondary-button" [routerLink]="kind==='emission'?'/rimborsi':'/tornei'">Torna all’elenco</a></div>
+ <div class="page-heading"><div><h1>{{title()}}</h1><p class="dashboard-subtitle">{{kind==='tournament'?'Dettaglio torneo':kind==='race'?'Dettaglio gara':kind==='player'?'Dettaglio giocatore':'Dettaglio rimborso'}}</p></div>@if(kind==='player'||kind==='emission'){<a class="secondary-button" [routerLink]="kind==='emission'?'/rimborsi':'/tornei'">Torna all’elenco</a>}</div>
  @if(info();as row){<dl class="detail-summary">
   @if(kind==='emission'){<dt>Emesso il</dt><dd>{{timestamp(row.created_at)}}</dd><dt>Operatore</dt><dd>#{{row.user_id}}</dd><dt>Totale emesso</dt><dd>{{money(row.total_cents)}}</dd><dt>Emittente</dt><dd>{{row.options.issuer}}</dd><dt>Data ricevuta</dt><dd>{{dateLabel(row.options.date)}}</dd><dt>Note</dt><dd>{{row.options.notes||'—'}}</dd>}
   @else if(kind==='player'){<dt>Giocatore</dt><dd>{{row.name}}</dd><dt>Tessera</dt><dd>{{row.card||'—'}}</dd><dt>Partecipazioni nella stagione selezionata</dt><dd>{{entries().length}}</dd>}
-  @else{<dt>Torneo</dt><dd><a [routerLink]="'/tornei/'+row.tournament_key">{{row.tournament_name}}</a></dd><dt>Data</dt><dd>{{dateLabel(row.tournament_date)}}</dd><dt>Località</dt><dd>{{row.tournament_place}}</dd><dt>Comitato</dt><dd>{{row.committee_label}}</dd>@if(kind==='race'){<dt>Gara</dt><dd>{{row.race_name}}</dd><dt>Quota</dt><dd>{{money(row.price_cents)}}</dd>}<dt>Stato rimborsi</dt><dd>{{portal.tournamentState(row.tournament_key)}}</dd>}
+  @else{<dt>Torneo</dt><dd><a [routerLink]="'/tornei/'+row.tournament_key">{{row.tournament_name}}</a></dd><dt>Data</dt><dd>{{dateLabel(row.tournament_date)}}</dd><dt>Località</dt><dd>{{row.tournament_place}}</dd><dt>Comitato</dt><dd>{{row.committee_label}}</dd>@if(kind==='tournament'){<dt>Locandina</dt><dd>@if(row.poster_url){<a [href]="row.poster_url" target="_blank" rel="noopener noreferrer">Visualizza locandina</a>}@else{ {{row.tournament_scope==='national'?'Non prevista per i tornei nazionali':'Non disponibile'}} }</dd>}@if(kind==='race'){<dt>Gara</dt><dd>{{row.race_name}}</dd><dt>Quota</dt><dd>{{money(row.price_cents)}}</dd>}<dt>Rimborsi</dt><dd class="refund-progress-summary"><strong>{{refundSummary().count}}</strong><span>({{refundSummary().label}})</span></dd>}
  </dl>
- @if(kind==='emission'){<div class="print-controls"><label>Formato ricevute<select aria-label="Formato ricevute" [ngModel]="printFormat()" (ngModelChange)="printFormat.set($event)"><option value="total">Cumulativa</option><option value="athletes">Per singolo atleta</option><option value="both">Tutto insieme (ZIP)</option></select></label><button class="sync-button" (click)="download()" [disabled]="portal.data.locked()">Stampa ricevute</button></div>}
+ @if(kind==='emission'){
+ <div class="print-controls"><button class="sync-button" (click)="download('pdf')" [disabled]="portal.data.locked()">Stampa rimborso (PDF)</button><button class="secondary-button" (click)="download('xlsx')" [disabled]="portal.data.locked()">Esporta Excel</button><button class="secondary-button" (click)="download('zip')" [disabled]="portal.data.locked()">Scarica PDF + Excel (ZIP)</button></div>
+ <p class="grid-help">Un unico PDF con quanto consegnare a ogni atleta, dettaglio quote e ricevute originali. L’Excel contiene tre fogli con dati filtrabili e totali calcolati.</p>
+ @if(!row.options.original_receipts){<p class="notice">Per questa emissione precedente, le ricevute vengono recuperate dai documenti attualmente associati ai tornei: verificarne la corrispondenza.</p>}
+ }
  @if(kind==='tournament'){<h2>Gare</h2><fr-entity-grid kind="races" [rows]="races()" viewKey="tournament-races" label="gare del torneo" />}
  @if(kind==='emission'){<p class="grid-help">Importo e PDF si riferiscono all’emissione completa; la tabella segue la stagione selezionata.</p>}<h2>Iscrizioni</h2><fr-entity-grid kind="entries" [rows]="entries()" [viewKey]="kind+'-entries'" label="iscrizioni" />
  @if(kind==='player'){<h2>Rimborsi</h2><fr-entity-grid kind="emissions" [rows]="playerEmissions()" viewKey="player-emissions" label="rimborsi del giocatore" />}
@@ -52,7 +56,7 @@ export class PortalPageComponent {
 export class PortalDetailComponent {
  readonly portal=inject(PortalService);private readonly route=inject(ActivatedRoute);readonly params=toSignal(this.route.paramMap);
  readonly kind=this.route.snapshot.data['kind'] as 'tournament'|'race'|'player'|'emission';readonly id=computed(()=>this.params()?.get('id')||this.params()?.get('key')||'');
- readonly printFormat=signal<'total'|'athletes'|'both'>('total');
+ readonly refundSummary=computed(()=>this.portal.refundStats(this.info()?.tournament_key||'',this.kind==='race'?Number(this.info()?.race_id||this.info()?.id):undefined));
  readonly money=money;readonly dateLabel=dateLabel;readonly timestamp=(date:string)=>new Date(date).toLocaleString('it-IT');
  readonly emission=computed(()=>this.portal.emissions().find(e=>String(e.id)===this.id()));
  readonly entries=computed(()=>this.kind==='emission'?this.portal.filter(this.emission()?.items||[]):this.kind==='player'?this.portal.playerRows(this.id()):this.portal.entries().filter(r=>this.kind==='race'?String(r.race_id)===this.id():r.tournament_key===this.id()));
@@ -65,5 +69,13 @@ export class PortalDetailComponent {
  });
  readonly title=computed(()=>this.kind==='emission'?'Rimborso #'+this.id():this.kind==='player'?this.info()?.name||'Giocatore':this.kind==='race'?this.info()?.race_name||'Gara':this.info()?.tournament_name||'Torneo');
  readonly playerEmissions=computed(()=>{const ids=new Set(this.entries().map(r=>r.id));return this.portal.history().filter(e=>e.items.some(r=>ids.has(r.id)));});
- async download(){const e=this.emission();if(!e)return;await this.portal.data.perform(async()=>{const full=await this.portal.emission(e.id);const {downloadRefunds}=await import('./refund-pdf');await downloadRefunds(full.items.map(r=>({...r,reimbursed:false})),{...full.options,format:this.printFormat(),signature:full.options.signature??null,stamp:full.options.stamp??null});});}
+ async download(format:'pdf'|'xlsx'|'zip'){
+  const e=this.emission();if(!e)return;
+  await this.portal.data.perform(async()=>{
+   const full=await this.portal.emission(e.id),manifest=await this.portal.receiptManifest(e.id);
+   const {downloadRefundExport}=await import('./refund-export');
+   await downloadRefundExport(full,manifest,id=>this.portal.originalReceipt(e.id,id),format,text=>this.portal.data.notice.set(text));
+   this.portal.data.notice.set(format==='pdf'?'PDF completo preparato.':format==='xlsx'?'Excel preparato.':'PDF ed Excel preparati.');
+  });
+ }
 }

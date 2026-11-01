@@ -328,3 +328,73 @@ Verifiche nel WordPress isolato con SQLite, account e immagini fittizi; dati di 
 Suite corrente: `mobile-cards.cjs`, setup e pulizia con `admin-ui-fixture.php`. La fixture dei
 65 tornei viene simulata solo nella risposta browser, senza inserire record nel database.
 I dati operativi del sito isolato vengono ripristinati alla fine delle verifiche.
+
+
+## Aggiornamento 0.10.1 — conteggi rimborsi e ricerca mobile
+
+30 controlli superati in `tests/refund-counts-ui.cjs`: modello vuoto/zero/parziale/totale,
+colonne numeriche Tornei e Gare, dettagli con 0%, 16,7%, 33,3% e 100% e denominatori diversi
+per torneo/gara; card con conteggi senza percentuali, titoli collegati per torneo/gara/iscrizione/
+rimborso/giocatore/recap, navigazione al dettaglio, ricerca e pulsante a icona affiancati,
+azzeramento effettivo, nessun overflow mobile o errore JavaScript.
+
+Dati di rimborso, emissione e bozza simulati nelle risposte del browser, senza scritture al database.
+Verifiche su WordPress isolato; build Angular production e lint del bootstrap PHP riusciti.
+Anteprima mobile controllata visivamente. Nessuna modifica alle API o alle tabelle.
+
+
+## Aggiornamento 0.11.0 — locandine
+
+- Verificati gli HTML pubblici FITeT: esempio corrente `4_1_281.pdf` ed esempio storico
+  `40/4_7_774.pdf` trovati nei link, senza scaricare i documenti.
+- **26 controlli backend** (`posters.php`): estrazione/persistenza, ANNO osservato, cambio stagione,
+  cataloghi privi di ANNO, host/identità/riferimenti ambigui rifiutati, nazionali esclusi, mancanze
+  opzionali, nessun cookie/redirect, tornei senza iscrizioni, trasferimento catalogo-ricevuta,
+  risincronizzazioni, backup nuovi/precedenti, coda progressiva e nessuna richiesta ai PDF locandina.
+- **19 controlli browser/API** (`posters-ui.cjs`): link su tabella/card/dettaglio, apertura in una nuova
+  scheda dell’URL atteso, attributi di sicurezza, stagioni passate, nazionali e riferimenti assenti,
+  tornei senza iscrizioni, layout mobile senza overflow, nessun errore JavaScript. Gli URL esterni
+  delle nuove schede sono intercettati dal browser di prova: nessun PDF viene scaricato nei test UI.
+- Ripetuti **24 controlli import/dati**, **27 flusso extranet**, **31 configurazione/bozze/backup**.
+- Build Angular production e lint PHP superati. Dati operativi fittizi ripristinati dopo le prove.
+  Screenshot mobile controllato visivamente. Verifiche database sul WordPress isolato con SQLite.
+
+Per la suite UI: `php tests/poster-ui-fixture.php`, server con `tests/router.php`,
+`node tests/posters-ui.cjs`, infine `php tests/poster-ui-fixture.php clean`.
+
+
+## Aggiornamento 0.12.0 — PDF completo ed Excel rimborsi
+
+- **19 controlli modello/export** in `refund-export.cjs`: importi emessi, esempio utente da 96 EUR
+  con beneficiari da 42/27/15/12, doppi e centesimi dispari, deduplicazione originali, pagine fisiche
+  degli allegati, tre fogli Excel, tabelle native senza subtotali, importi/date numerici, formule e
+  risultati memorizzati, somma dell’intera colonna senza doppio totale, originali mancanti,
+  importi incoerenti rifiutati e documenti multipagina con note lunghe.
+- **12 controlli backend** in `refund-documents.php`: snapshot canonico, riferimenti per quota,
+  lettura PDF verificata, isolamento per società/emissione, file e percorsi non esposti, preservazione
+  dopo modifica del torneo, hash e percorsi invalidi rifiutati, legacy dichiarato e backup.
+- **17 controlli browser/API** in `refund-export-ui.cjs`: emissione senza download automatico,
+  eliminazione modalità individuale, manifesto, PDF binario, accesso anonimo rifiutato, documento
+  estraneo rifiutato, PDF unico, Excel e ZIP con due file, importi storici dopo cambio prezzi,
+  documento mancante senza PDF parziale e con Excel segnalato, mobile e assenza di errori JavaScript.
+- Ripetuti **31 controlli backend configurazione/bozze/backup** e **29 controlli UI** aggiornati
+  al nuovo export, incluse firma/timbro storici dopo rimozione dalla configurazione.
+- Importato l’XLSX prodotto dal plugin in un motore indipendente: ricalcolo da 37,01 a 47,01 dopo
+  modifica di una quota da 15 a 25, entrambi i beneficiari inclusi, nessun errore formula.
+  Corretti i metadati ExcelJS totalsRowShown/totalsRowCount per dichiarare esplicitamente zero
+  righe totali nelle tabelle, mantenendo i totali generali esterni alle colonne degli importi.
+- Renderizzati e controllati tutti e tre i fogli; PDF con riepilogo, dettaglio e indice controllati
+  visivamente. pypdf/pdfplumber verificano testi originali presenti una sola volta, riferimenti
+  corretti e testo entro le pagine anche nel documento di 27 pagine. Nessuna rasterizzazione.
+- Build Angular production e lint dei 21 file PHP distribuiti riusciti. Restano avvisi di ottimizzazione
+  delle dipendenze CommonJS. Test su WordPress isolato con SQLite, dati e immagini fittizi ripristinati.
+  Le emissioni legacy dichiarano che gli originali sono ricostruiti dall’archivio corrente.
+
+Fixture browser: `php tests/export-ui-fixture.php`, server con `tests/router.php`,
+`node tests/refund-export-ui.cjs`, poi `php tests/export-ui-fixture.php clean`.
+Le verifiche della suite admin usano il proprio setup/ripristino `admin-ui-fixture.php`.
+Le suite storiche dei PDF individuali restano riferite al vecchio generatore, fuori dalle rotte attive.
+
+## Aggiornamento 0.12.1 — Profilo e filtri tabella
+
+`tests/table-profile-ui.cjs` verifica accesso, salvataggio delle preferenze sul server, validazione della densità, protezione CSRF e rifiuto anonimi, ripristino con nuovo browser, switch autoHeight e ripristino altezza fissa, spaziatura compatta, applicazione alla pagina giocatori, filtri dalle intestazioni e ordinamento, assenza dei filtri Azioni e della riga aggiuntiva, rimozione dei link richiesti e della checkbox Gare, conservazione delle card mobile e assenza di overflow/errori browser. Il test ripristina le preferenze iniziali.
