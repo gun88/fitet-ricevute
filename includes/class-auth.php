@@ -144,7 +144,7 @@ final class FR_Auth {
 
     public static function grid_preferences(int $user_id): array {
         $saved = get_option('fr_grid_preferences_' . $user_id, []);
-        return ['auto_height' => ($saved['auto_height'] ?? false) === true, 'density' => ($saved['density'] ?? '') === 'compact' ? 'compact' : 'standard'];
+        return ['auto_height' => ($saved['auto_height'] ?? false) === true, 'payment_method'=>($saved['payment_method']??'transfer')==='cash'?'cash':'transfer', 'density' => ($saved['density'] ?? '') === 'compact' ? 'compact' : 'standard'];
     }
 
     public function me(): array {

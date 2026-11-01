@@ -26,6 +26,8 @@ bootstrapApplication(AppComponent, {
         { path: 'rimborsi', data:{kind:'emissions'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalPageComponent), title:'Rimborsi Emessi · FITET Ricevute' },
         { path: 'carrello', pathMatch:'full', redirectTo:'bozza-rimborso' },
         { path: 'bozza-rimborso', loadComponent:()=>import('./app/cart.component').then(m=>m.CartComponent), title:'Bozza rimborso · FITET Ricevute' },
+        { path:'tornei/nuovo',loadComponent:()=>import('./app/manual-tournament.component').then(m=>m.ManualTournamentComponent),title:'Aggiungi torneo · FITET Ricevute'},
+        { path:'rimborsi/:id/modifica',loadComponent:()=>import('./app/cart.component').then(m=>m.CartComponent),title:'Modifica rimborso · FITET Ricevute'},
         { path: 'tornei/:id', data:{kind:'tournament'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalDetailComponent), title:'Torneo · FITET Ricevute' },
         { path: 'gare/:id', data:{kind:'race'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalDetailComponent), title:'Gara · FITET Ricevute' },
         { path: 'rimborsi/:id', data:{kind:'emission'}, loadComponent:()=>import('./app/portal-pages.component').then(m=>m.PortalDetailComponent), title:'Rimborso · FITET Ricevute' },

@@ -58,13 +58,13 @@ final class FR_Refund_Workflow {
         $row['id']=(int)$row['id'];$row['user_id']=(int)$row['user_id'];$row['total_cents']=(int)$row['total_cents'];
         $row['created_at']=str_replace(' ','T',$row['created_at']).'Z';
         $row['items']=json_decode($row['items_json'],true);$row['options']=json_decode($row['options_json'],true);
-        if(isset($row['options']['original_receipts']))foreach($row['options']['original_receipts'] as &$doc)unset($doc['file']);unset($doc);
+        $sanitize=function(array &$options)use(&$sanitize){if(isset($options['original_receipts']))foreach($options['original_receipts'] as &$doc)unset($doc['file']);unset($doc);if(isset($options['history']))foreach($options['history'] as &$version)if(isset($version['options']))$sanitize($version['options']);};$sanitize($row['options']);
         unset($row['items_json'],$row['options_json'],$row['request_key']);return $row;
     }
     public function emissions(int $page): array {
         global $wpdb;$table=$this->table('emissioni');$society=$this->society();
         $rows=$wpdb->get_results($wpdb->prepare("SELECT * FROM $table WHERE society_code=%s ORDER BY id DESC LIMIT 50 OFFSET %d",$society,(max(1,$page)-1)*50),ARRAY_A);
-        return ['items'=>array_map(function($row){$value=$this->decode($row);foreach(['signature','stamp'] as $image)if(isset($value['options'][$image]['data_url']))unset($value['options'][$image]['data_url']);return $value;},$rows),'total'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE society_code=%s",$society)),'page'=>$page,'per_page'=>50];
+        return ['items'=>array_map(function($row){$value=$this->decode($row);if(isset($value['options']['history']))$value['options']['history']=array_map(fn($h)=>array_intersect_key($h,array_flip(['revision','total_cents','replaced_at','replaced_by'])),$value['options']['history']);foreach(['signature','stamp'] as $image)if(isset($value['options'][$image]['data_url']))unset($value['options'][$image]['data_url']);return $value;},$rows),'total'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE society_code=%s",$society)),'page'=>$page,'per_page'=>50];
     }
     public function emission(int $id): array {
         global $wpdb;$table=$this->table('emissioni');
@@ -80,10 +80,47 @@ final class FR_Refund_Workflow {
         foreach($this->document_bundle($id)['documents'] as $doc)if(hash_equals($doc['id'],$receipt))return FR_Refund_Documents::read($doc);
         throw new RuntimeException('Ricevuta non inclusa in questo rimborso.');
     }
+    public function revise(int $user,int $id,array $input): array {
+        global $wpdb;$table=$this->table('emissioni');$paid=$this->table('rimborsi');$society=$this->society();
+        if(!add_option('fr_issue_lock',time(),'',false))throw new RuntimeException('Un rimborso è già in aggiornamento.');
+        try{
+            $this->checked($wpdb->query('START TRANSACTION'));
+            try{
+                $raw=$wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id=%d AND society_code=%s",$id,$society),ARRAY_A);
+                if(!$raw)throw new RuntimeException('Rimborso non disponibile.');
+                $oldOptions=json_decode($raw['options_json'],true);$revision=(int)($oldOptions['revision']??0);
+                if(($input['revision']??null)!==$revision)throw new RuntimeException('Il rimborso è stato modificato da un altro operatore. Riaprilo prima di salvare.');
+                $oldRows=json_decode($raw['items_json'],true);$oldBundle=FR_Refund_Documents::bundle($oldRows,$oldOptions,$society);foreach($oldRows as &$oldRow)if(empty($oldRow['receipt_id']))$oldRow['receipt_id']=$oldBundle['entry_receipts'][(string)$oldRow['id']]??'';unset($oldRow);$oldMap=[];foreach($oldRows as $row)$oldMap[(int)$row['id']]=$row;
+                $ids=$input['ids']??[];if(!is_array($ids)||!$ids||count($ids)>1000||count(array_unique($ids))!==count($ids))throw new RuntimeException('Selezione non valida.');
+                $rows=[];$notes=$input['line_notes']??[];
+                foreach($ids as $entryId){
+                    if(!is_int($entryId)||$entryId<1)throw new RuntimeException('Iscrizione non valida.');
+                    if(isset($oldMap[$entryId])){$row=$oldMap[$entryId];$row['price_cents']=(int)($row['paid_cents']??$row['price_cents']);}
+                    else{$row=$this->data->refund_preview([$entryId])['items'][0];if((int)$row['reimbursed']||$row['price_cents']===null)throw new RuntimeException('Iscrizione già gestita o senza prezzo.');if(($input['prices'][(string)$entryId]??null)!==(int)$row['price_cents'])throw new RuntimeException('Quota cambiata: aggiorna la selezione.');}
+                    $note=$notes[(string)$entryId]??$row['refund_notes']??'';if(!is_string($note)||mb_strlen($note)>1000)throw new RuntimeException('Note riga troppo lunghe.');$row['refund_notes']=sanitize_textarea_field($note);$rows[]=$row;
+                }
+                $options=$input['options']??[];$date=$options['date']??'';$parsed=is_string($date)?DateTimeImmutable::createFromFormat('!Y-m-d',$date):false;
+                if(!$parsed||$parsed->format('Y-m-d')!==$date||!in_array($options['allocation']??'',['half','first','second'],true)||!is_string($options['notes']??null)||mb_strlen($options['notes'])>2000)throw new RuntimeException('Impostazioni rimborso non valide.');
+                $options['issuer']=$oldOptions['issuer'];$options['signature']=$oldOptions['signature']??null;$options['stamp']=$oldOptions['stamp']??null;$options['format']='total';
+                $newRows=array_values(array_filter($rows,fn($r)=>!isset($oldMap[(int)$r['id']])));$newDocs=FR_Refund_Documents::capture($newRows,$society);$newMap=[];foreach($newRows as $row)$newMap[$row['id']]=$row['receipt_id'];foreach($rows as &$row)if(isset($newMap[$row['id']]))$row['receipt_id']=$newMap[$row['id']];unset($row);
+                $bundle=FR_Refund_Documents::bundle($oldRows,$oldOptions,$society);$wanted=array_column($rows,'receipt_id');$docs=[];foreach(array_merge($bundle['documents'],$newDocs) as $doc)if(in_array($doc['id'],$wanted,true))$docs[$doc['id']]=$doc;$options['original_receipts']=array_values($docs);
+                $options['revision']=$revision+1;$options['updated_at']=gmdate(DATE_ATOM);$options['updated_by']=$user;
+                // Keep previous versions as complete immutable snapshots, without recursive history.
+                $history=$oldOptions['history']??[];unset($oldOptions['history']);$history[]=['revision'=>$revision,'items'=>$oldRows,'options'=>$oldOptions,'total_cents'=>(int)$raw['total_cents'],'replaced_at'=>gmdate(DATE_ATOM),'replaced_by'=>$user];$options['history']=$history;
+                $total=FR_Refund_Amounts::calculate($rows,$options);$now=current_time('mysql',true);
+                foreach($oldMap as $entryId=>$row)if(!in_array($entryId,$ids,true))$this->checked($wpdb->update($paid,['reimbursed'=>0,'paid_cents'=>null,'updated_at'=>$now,'updated_by'=>$user],['entry_id'=>$entryId]));
+                foreach($rows as &$row){$amount=(int)($row['paid_cents']??$row['price_cents']);$record=['reimbursed'=>1,'paid_cents'=>$amount,'updated_at'=>$now,'updated_by'=>$user];$exists=$wpdb->get_var($wpdb->prepare("SELECT entry_id FROM $paid WHERE entry_id=%d",$row['id']));if($exists)$this->checked($wpdb->update($paid,$record,['entry_id'=>$row['id']]));else $this->checked($wpdb->insert($paid,['entry_id'=>$row['id']]+$record));$row['paid_cents']=$amount;$row['reimbursed']=1;}unset($row);
+                $cart=$this->table('carrello');foreach($ids as $entryId)$this->checked($wpdb->delete($cart,['user_id'=>$user,'society_code'=>$society,'entry_id'=>$entryId]));
+                $this->checked($wpdb->update($table,['items_json'=>wp_json_encode($rows),'options_json'=>wp_json_encode($options),'total_cents'=>$total],['id'=>$id]));$this->checked($wpdb->query('COMMIT'));return $this->emission($id);
+            }catch(Throwable $error){$wpdb->query('ROLLBACK');throw $error;}
+        }finally{delete_option('fr_issue_lock');}
+    }
+
     public function issue(int $user,array $input): array {
         global $wpdb;$society=$this->society();$emissions=$this->table('emissioni');$cart=$this->table('carrello');$paid=FR_Data_Repository::table('rimborsi');
         $key=$input['request_key']??'';$options=$input['options']??[];$ids=$input['ids'];
         if(!is_string($key)||!preg_match('/^[a-f0-9]{32}$/D',$key))throw new RuntimeException('Identificativo emissione non valido.');
+        unset($options['history'],$options['revision'],$options['updated_at'],$options['updated_by'],$options['settlement']);
         $options['issuer']=trim((string)FR_Settings::all()['society_name']);$options['format']='total';
         $date=$options['date']??'';$parsed=is_string($date)?DateTimeImmutable::createFromFormat('!Y-m-d',$date):false;
         if(!$parsed||$parsed->format('Y-m-d')!==$date||!is_string($options['issuer']??null)||trim($options['issuer'])===''||mb_strlen($options['issuer'])>180
@@ -118,6 +155,7 @@ final class FR_Refund_Workflow {
                     else{$this->checked($wpdb->insert($paid,array_merge(['entry_id'=>$id],$record)));}
                     $total+=(int)$amount;$row['price_cents']=(int)$amount;$row['paid_cents']=(int)$amount;$row['reimbursed']=1;
                 }unset($row);
+                $total=FR_Refund_Amounts::calculate($rows,$options);
                 $this->checked($wpdb->insert($emissions,['user_id'=>$user,'society_code'=>$society,'request_key'=>$key,'created_at'=>$now,'total_cents'=>$total,'items_json'=>wp_json_encode($rows),'options_json'=>wp_json_encode($options)]));
                 $id=(int)$wpdb->insert_id;
                 foreach($ids as $entry_id)$this->checked($wpdb->delete($cart,['user_id'=>$user,'society_code'=>$society,'entry_id'=>$entry_id]));

@@ -7,7 +7,8 @@ import { DashboardComponent } from './dashboard.component';
  <section class="profile-card" aria-label="Informazioni utente">
   <dl class="detail-summary"><dt>Nome utente</dt><dd>{{dashboard.auth.user()?.display_name}}</dd><dt>Username di accesso</dt><dd>{{dashboard.auth.user()?.username}}</dd></dl>
   <fieldset class="profile-grid-preferences" [disabled]="saving()">
-   <legend>Tabelle desktop</legend>
+   <legend>Preferenze personali</legend>
+   <label>Modalità rimborso predefinita <select aria-label="Modalità rimborso predefinita" [ngModel]="dashboard.auth.gridPreferences().payment_method||'transfer'" (ngModelChange)="save({payment_method:$event})"><option value="transfer">Bonifico</option><option value="cash">Contanti</option></select></label>
    <label class="check-field"><input type="checkbox" role="switch" [checked]="dashboard.auth.gridPreferences().auto_height" (change)="save({auto_height:$any($event.target).checked})">Altezza automatica</label>
    <p class="grid-help">Adatta la tabella alle righe della pagina. Disattiva per usare lo scorrimento interno.</p>
    <label>Spaziatura <select aria-label="Spaziatura tabelle" [ngModel]="dashboard.auth.gridPreferences().density" (ngModelChange)="save({density:$event})"><option value="standard">Standard</option><option value="compact">Compatta</option></select></label>

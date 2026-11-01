@@ -54,6 +54,8 @@ final class FR_Admin {
             'society_code' => ['Codice società FITeT', 'text'],
             'session_hours' => ['Durata sessione (ore, da 1 a 72)', 'number'],
             'remember_days' => ['Durata “Ricordami” (giorni, da 1 a 90)', 'number'],
+            'manual_receipt_kb'=>['Ricevuta manuale: limite KB (1–3072)', 'number'],
+            'manual_poster_kb'=>['Locandina manuale: limite KB (1–3072)', 'number'],
         ];
         ?>
         <div class="wrap fr-admin">
@@ -70,7 +72,7 @@ final class FR_Admin {
                     </label></td></tr>
                     <?php foreach ($fields as $key => [$label, $type]): ?>
                         <tr><th scope="row"><label for="fr-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></label></th>
-                        <td><input class="regular-text" id="fr-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr(FR_Settings::OPTION . '[' . $key . ']'); ?>" type="<?php echo esc_attr($type); ?>" value="<?php echo esc_attr($config[$key]); ?>" <?php echo $type === 'number' ? 'min="1" max="' . ($key === 'session_hours' ? '72' : '90') . '"' : ''; ?>></td></tr>
+                        <td><input class="regular-text" id="fr-<?php echo esc_attr($key); ?>" name="<?php echo esc_attr(FR_Settings::OPTION . '[' . $key . ']'); ?>" type="<?php echo esc_attr($type); ?>" value="<?php echo esc_attr($config[$key]); ?>" <?php echo $type === 'number' ? 'min="1" max="' . ($key === 'session_hours' ? '72' : ($key === 'remember_days' ? '90' : '3072')) . '"' : ''; ?>></td></tr>
                     <?php endforeach; ?>
                     <tr><th scope="row"><label for="fr-login-message">Messaggio nella pagina di accesso</label></th><td>
                         <textarea class="large-text" rows="3" id="fr-login-message" name="<?php echo esc_attr(FR_Settings::OPTION); ?>[login_message]"><?php echo esc_textarea($config['login_message']); ?></textarea>

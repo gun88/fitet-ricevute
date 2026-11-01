@@ -44,14 +44,17 @@ final class FR_Api {
             'methods' => 'PUT', 'permission_callback' => [$this->auth, 'permission'],
             'args' => [
                 'auto_height' => ['required' => true, 'type' => 'boolean'],
+                'payment_method'=>['type'=>'string','enum'=>['transfer','cash'],'default'=>'transfer'],
                 'density' => ['required' => true, 'type' => 'string', 'enum' => ['standard', 'compact']],
             ],
             'callback' => function (WP_REST_Request $request) {
                 $user_id = (int) $this->auth->current()['id'];
-                update_option('fr_grid_preferences_' . $user_id, ['auto_height' => (bool) $request['auto_height'], 'density' => $request['density']], false);
+                update_option('fr_grid_preferences_' . $user_id, ['auto_height' => (bool) $request['auto_height'], 'density' => $request['density'], 'payment_method'=>$request['payment_method']], false);
                 return FR_Auth::grid_preferences($user_id);
             },
         ]);
+        register_rest_route(self::NS,'/tornei/manuali',['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(function()use($r){$data=json_decode((string)$r->get_param('data'),true);if(!is_array($data))throw new RuntimeException('Dati torneo non validi.');return FR_Manual_Tournament::create($data,$r->get_file_params(),(int)$this->auth->current()['id']);})]);
+        register_rest_route(self::NS,'/tornei/(?P<key>[a-f0-9]{64})/locandina',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>new WP_REST_Response(FR_Manual_Tournament::poster($r['key']),200,['Content-Type'=>'application/pdf','Content-Disposition'=>'inline; filename="locandina.pdf"']))]);
         foreach (['gare', 'iscrizioni'] as $kind) {
             register_rest_route(self::NS, '/' . $kind, [
                 'methods' => 'GET', 'permission_callback' => [$this->auth, 'permission'],
@@ -100,6 +103,7 @@ final class FR_Api {
             ['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'args'=>['page'=>['type'=>'integer','minimum'=>1,'default'=>1]],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->emissions((int)$r['page']))],
             ['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'args'=>array_merge($selection_args,['request_key'=>['required'=>true,'type'=>'string'],'prices'=>['required'=>true,'type'=>'object'],'options'=>['required'=>true,'type'=>'object']]),'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->issue($current_user(),$r->get_json_params()))],
         ]);
+        register_rest_route(self::NS,'/emissioni/(?P<id>\d+)',['methods'=>'PUT','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->revise($current_user(),(int)$r['id'],$r->get_json_params()??[]))]);
         register_rest_route(self::NS,'/emissioni/(?P<id>\d+)',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->emission((int)$r['id']))]);
         register_rest_route(self::NS,'/emissioni/(?P<id>\d+)/ricevute',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->documents((int)$r['id']))]);
         register_rest_route(self::NS,'/emissioni/(?P<id>\d+)/ricevute/(?P<receipt>[a-f0-9]{64})',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(function()use($workflow,$r){$bytes=$workflow->original_pdf((int)$r['id'],$r['receipt']);return new WP_REST_Response($bytes,200,['Content-Type'=>'application/pdf','Content-Disposition'=>'inline; filename="ricevuta-originale.pdf"']);})]);
@@ -118,7 +122,7 @@ final class FR_Api {
     }
 
     public function serve_original_pdf($served,$response,$request,$server) {
-        if(!$served&&preg_match('~^/'.self::NS.'/emissioni/\d+/ricevute/[a-f0-9]{64}$~D',$request->get_route())&&$response->get_status()===200&&($response->get_headers()['Content-Type']??'')==='application/pdf') {echo $response->get_data();return true;}return $served;
+        if(!$served&&preg_match('~^/'.self::NS.'(?:/emissioni/\d+/ricevute/[a-f0-9]{64}|/tornei/[a-f0-9]{64}/locandina)$~D',$request->get_route())&&$response->get_status()===200&&($response->get_headers()['Content-Type']??'')==='application/pdf') {echo $response->get_data();return true;}return $served;
     }
 
     private function attempt(callable $callback) {

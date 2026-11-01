@@ -1,6 +1,6 @@
 # FITET Ricevute
 
-Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.12.3**.
+Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.13.0**.
 
 ## Pagine del portale
 
@@ -285,3 +285,14 @@ In Configurazione, solo per amministratori e quando sia l’URL configurato del 
 ## Messaggi e bozza 0.12.3
 
 Le conferme delle operazioni scompaiono dopo cinque secondi e al cambio pagina. Il timer viene rinnovato quando cambia il messaggio. Nella bozza, Società è un input in sola lettura con etichetta, allineato agli altri campi.
+
+## Rimborsi modificabili, rettifiche e tornei manuali 0.13.0
+
+- Modifica dal dettaglio rimborso: stesso modulo della bozza, dati separati dalla bozza ordinaria. Salvataggio atomico, controllo revisione contro modifiche concorrenti, storico dei precedenti snapshot in options_json. Le quote mantenute conservano il prezzo congelato; quelle rimosse tornano disponibili. Le sole quote selezionate vengono tolte dalla bozza dell’operatore, conservando le altre.
+- Ogni iscrizione può essere rimborsata oppure detratta perché già pagata dalla società. Contributi/trattenute hanno beneficiario, causale e importo firmato. Il saldo di ogni beneficiario deve essere non negativo. La scorciatoia “Imposta contributo complessivo” aggiunge il contributo e imposta le relative iscrizioni come detrazioni (nei doppi il trattamento è per coppia).
+- Bonifico/contanti per rimborso, predefinito personale nel profilo; default iniziale bonifico. La modalità e il relativo subtotale non nullo compaiono in PDF ed Excel.
+- PDF: Riepilogo rimborsi con numero gare; Dettaglio quote in verticale con torneo/gara/località, note e coppia; se presenti, contributi/trattenute in una sezione dedicata. Unico documento con originali. Excel: Riepilogo rimborsi, Dettaglio quote, Rettifiche, Ricevute originali. Totali separati dalle colonne analitiche.
+- Aggiungi torneo: avviso contro duplicati extranet, dati manuali, gare/prezzi, atleti con suggerimenti nome/tessera. Ricevuta obbligatoria e locandina facoltativa (PDF/PNG/JPG); le immagini sono convertite dal browser in PDF. Limiti separati nelle config admin, default 200 KB e massimo 3072 KB, verificati anche sul server sul PDF finale. Documenti privati nella cartella ricevute-pdf; locandina servita tramite API autenticata. Provenienza manuale conservata in source_json, distinta dai tornei sincronizzati. Non è richiesta una modifica DDL.
+- Tipo: Nazionale o Territoriale (nome comitato). Link di navigazione sui conteggi numerici, preservando sorting e filtro. Atleta e tessera uniti. Azioni +/− e modifica nota nella colonna checkbox. Stampa con icona. Progress sincronizzazione chiudibile al termine. Larghezze iniziali automatiche AG Grid sui contenuti renderizzati, limite iniziale 420px, senza sovrascrivere le preferenze salvate.
+
+La build del sito non viene aggiornata automaticamente da queste modifiche ai sorgenti. Per aggiornarla: `cd app` e `npm run build`.

@@ -296,3 +296,9 @@ uno snapshot storico garantito. Il browser raggruppa le quote per beneficiario e
 paid_cents emessi; i totali devono coincidere con total_cents. L’Excel mantiene tabelle senza subtotali
 e formule SUMIFS con risultati memorizzati. PDF ed Excel sono generati sul client; gli originali sono
 copiati una volta per hash nel PDF finale. Le locandine restano esterne e non partecipano agli allegati.
+
+## Rimborsi 0.13.0 e provenienza manuale
+
+Nessuna nuova tabella. options_json delle emissioni contiene payment_method, line_modes (entry ID -> reimburse/deduct), adjustments (beneficiary key, reason, cents), settlement calcolato dal server, revision, updated_at/by e history (snapshot precedenti senza storico ricorsivo). paid_cents nelle singole iscrizioni resta la quota documentata positiva, mentre emissioni.total_cents è il saldo dopo rettifiche e detrazioni. Calcolare i totali dai saldi, senza sommare paid_cents per determinare la spesa effettiva. Ogni saldo atleta è validato non negativo.
+
+I tornei manuali conservano la provenienza in gare.source_json con manual=true, autore e riferimenti alla locandina PDF. Identità manuali separate dai parametri osservati dell’extranet. La ricevuta e la locandina (incluse immagini convertite in PDF) usano lo stesso archivio protetto, incluso nei backup. I prezzi manuali sono registrati in prezzi.manual_cents.

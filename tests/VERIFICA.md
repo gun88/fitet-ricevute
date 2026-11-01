@@ -402,3 +402,16 @@ Le suite storiche dei PDF individuali restano riferite al vecchio generatore, fu
 ## Reset di sviluppo 0.12.2
 
 `php tests/development-reset.php`: 25 controlli sull’installazione isolata. Verifica blocco host esterni, sito configurato esterno anche con host locale, utenti senza privilegi, lock ripristino/sincronizzazione, cancellazione delle sei tabelle/PDF/stato sincronizzazione, conservazione impostazioni/account/credenziali/immagini/preferenze/file estranei e rilascio del lock. Ripristina il backup al termine.
+
+## Funzionalità 0.13.0
+
+- `php tests/refund-revision.php`: 18 controlli su rimborso ridotto, contributo con detrazioni, modifica atomica, congelamento prezzi, rilascio/aggiunta quote, storico, conflitti, isolamento bozza e backup.
+- `php tests/refund-documents.php`: 12 controlli su integrità e appartenenza degli originali, compatibilità legacy e backup.
+- `node tests/refund-export.cjs`: 19 controlli su ripartizione, tabelle Excel e PDF multipagina; struttura aggiornata a quattro fogli.
+- `node tests/settlement-export.cjs`: 10 controlli PDF/Excel su riduzione di 5 EUR e contributo da 80 EUR con detrazione di 15 EUR, totali e formato verticale.
+- Flusso browser in `tests/new-workflow-ui.cjs`: torneo manuale con ricevuta PNG convertita e locandina PDF, suggerimenti atleti, link numerici, Tipo, azioni checkbox, penna note, default contanti e modifica rimborso. Verificati 21 controlli; la chiusura del pannello sincronizzazione viene verificata anche separatamente da `tests/sync-dismiss-ui.cjs` (2 controlli).
+- Motore spreadsheet indipendente: ricalcolo corretto senza rettifiche e con contributo, e aggiornamento del totale da 65 a 75 EUR modificando il contributo da 80 a 90 EUR. `IFERROR` protegge la somma delle rettifiche quando la relativa tabella è vuota.
+- Regressioni: 31 controlli admin/bozze/backup, 25 reset, 26 locandine e 27 sincronizzazione superati.
+- Controllo visivo: PDF riepilogo e dettaglio verticale e foglio Excel riepilogo renderizzati; pagina Tornei verificata a 390 px senza overflow.
+
+Compilazione di verifica esclusivamente in `tests/.runtime/qa-app`; nessuna sostituzione della build distribuita in `assets/app`.

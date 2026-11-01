@@ -15,6 +15,7 @@ final class FR_Development_Reset {
         $lock = 'fr_backup_restore_lock';
         if (!add_option($lock, time(), '', false)) throw new RuntimeException('Un ripristino o reset è già in corso.');
         try {
+            foreach(['fr_issue_lock','fr_manual_tournament_lock'] as $active){$started=get_option($active);if($started&&time()-(int)$started<300)throw new RuntimeException('Salvataggio dati in corso. Attendi prima del reset.');}
             // Do not reset while a receipt import is being written.
             $pattern = $wpdb->esc_like('fr_sync_lock_') . '%';
             $busy = $wpdb->get_col($wpdb->prepare("SELECT option_value FROM $wpdb->options WHERE option_name LIKE %s", $pattern));

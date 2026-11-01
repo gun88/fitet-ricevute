@@ -331,3 +331,11 @@ ag-grid-angular {--ag-auto-height-min-body-height: 32px;}
 @media (min-width: 1101px) {
   .draft-refund-settings { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+.adjustment-row, .manual-entry { display:grid; grid-template-columns: 2fr 2fr 1fr auto; gap:12px; align-items:end; }
+.manual-tournament-form { border:0; padding:0; min-width:0; }
+.inline-row-actions { display:inline-flex; align-items:center; gap:4px; height:100%; }
+.quota-toggle,.quota-edit { border:0; background:none; padding:0 5px; font-size:24px; font-weight:bold; cursor:pointer; color:var(--green); }
+.quota-toggle.remove { color:#a52a2a; }
+.quota-toggle:disabled { color:#999; cursor:not-allowed; }
+@media(max-width:1100px){ .adjustment-row,.manual-entry { grid-template-columns:1fr; } }

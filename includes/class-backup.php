@@ -92,6 +92,7 @@ final class FR_Backup {
                     $items=self::json($row['items_json']);$options=self::json($row['options_json']);$sum=0;
                     if(!$items||!array_is_list($items))throw new RuntimeException('Emissione senza iscrizioni nel backup.');
                     foreach($items as $item){if(!isset($item['id'],$item['race_id'],$item['price_cents'])||!is_numeric($item['price_cents'])||(int)$item['price_cents']<0||($item['society_code']??'')!==$row['society_code'])throw new RuntimeException('Snapshot emissione non valido.');$sum+=(int)$item['price_cents'];}
+                    if(isset($options['settlement']))$sum=FR_Refund_Amounts::calculate($items,$options);
                     if($sum!==(int)$row['total_cents'])throw new RuntimeException('Totale emissione incoerente nel backup.');
                     foreach(['signature','stamp'] as $kind)FR_Signature::validate_snapshot($options[$kind]??null);
                 }

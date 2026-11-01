@@ -9,7 +9,7 @@ import { apiUrl, config } from './config';
 import { seasonFor, seasonsFor, playerKey } from './players-model';
 import type { Allocation } from './refund-model';
 export interface SignatureImage { data_url: string; sha256: string; width: number; height: number; format: 'PNG'|'JPEG' }
-export interface ReceiptOptions { original_receipts?:unknown[]; signature?: SignatureImage | null; stamp?: SignatureImage | null; issuer: string; date: string; notes: string; allocation: Allocation; format: 'total'|'athletes'|'both' }
+export interface ReceiptOptions { payment_method?:'transfer'|'cash';adjustments?:import('./refund-settlement').Adjustment[];line_modes?:Record<string,'reimburse'|'deduct'>;revision?:number;updated_at?:string;updated_by?:number;history?:any[]; original_receipts?:unknown[]; signature?: SignatureImage | null; stamp?: SignatureImage | null; issuer: string; date: string; notes: string; allocation: Allocation; format: 'total'|'athletes'|'both' }
 export interface Emission { id: number; user_id: number; created_at: string; total_cents: number; items: Row[]; options: ReceiptOptions }
 export type EmissionSummary = Omit<Emission,'options'> & {options: Omit<ReceiptOptions,'signature'|'stamp'> & {signature?: Omit<SignatureImage,'data_url'> | null;stamp?: Omit<SignatureImage,'data_url'> | null}};
 const normal = (row: any): Row => ({...row,id:Number(row.id),race_id:Number(row.race_id),price_cents:row.price_cents==null?null:Number(row.price_cents),paid_cents:row.paid_cents==null?null:Number(row.paid_cents),reimbursed:Number(row.reimbursed)===1});
@@ -53,6 +53,8 @@ export class PortalService {
  });}
  async updateLine(row:Row,notes:string){await this.data.perform(async()=>{this.revision++;const result=await firstValueFrom(this.http.patch<{items:any[]}>(apiUrl('carrello/'+row.id),{notes}));this.cart.set(result.items.map(normal));this.data.notice.set('Note della bozza salvate.');});}
  async emission(id:number):Promise<Emission>{const e=await firstValueFrom(this.http.get<Emission>(apiUrl('emissioni/'+id)));return {...e,items:e.items.map(normal)};}
+ async revise(id:number,rows:Row[],options:ReceiptOptions,revision:number){return firstValueFrom(this.http.put<Emission>(apiUrl('emissioni/'+id),{revision,ids:rows.map(r=>r.id),prices:Object.fromEntries(rows.map(r=>[r.id,r.price_cents])),line_notes:Object.fromEntries(rows.map(r=>[r.id,r.refund_notes||''])),options}));}
+ async manualTournament(data:any,receipt:File,poster?:File){const body=new FormData();body.append('data',JSON.stringify(data));body.append('receipt',receipt);if(poster)body.append('poster',poster);return firstValueFrom(this.http.post<{tournament_key:string}>(apiUrl('tornei/manuali'),body));}
  async receiptManifest(id:number):Promise<ReceiptManifest>{return firstValueFrom(this.http.get<ReceiptManifest>(apiUrl('emissioni/'+id+'/ricevute')));}
  async originalReceipt(id:number,receipt:string):Promise<Uint8Array>{return new Uint8Array(await firstValueFrom(this.http.get(apiUrl('emissioni/'+id+'/ricevute/'+receipt),{responseType:'arraybuffer'})));}
  async stamp():Promise<SignatureImage|null>{return (await firstValueFrom(this.http.get<{stamp:SignatureImage|null}>(apiUrl('timbro')))).stamp;}

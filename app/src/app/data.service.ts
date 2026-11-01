@@ -42,6 +42,7 @@ export class DataService {
   readonly selected = signal<number[]>([]);
   readonly error = signal('');
   readonly notice = signal('');
+  readonly dismissedSyncJob = signal('');
   readonly loading = signal(false);
   readonly busy = signal(false);
   readonly syncing = signal(false);

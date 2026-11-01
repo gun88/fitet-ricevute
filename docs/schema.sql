@@ -103,7 +103,7 @@ CREATE TABLE {prefix}fitet_ricevute_carrello (
     PRIMARY KEY  (user_id,society_code,entry_id)
 ) ENGINE=InnoDB {charset};
 
--- Registro immutabile: quote/importi congelati all'emissione, non ricalcolati dal catalogo.
+-- Registro con quote congelate. Le revisioni conservano gli snapshot precedenti in options_json.history.
 CREATE TABLE {prefix}fitet_ricevute_emissioni (
     id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
     user_id bigint(20) unsigned NOT NULL,

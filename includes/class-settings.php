@@ -14,6 +14,7 @@ final class FR_Settings {
             'enabled' => true,
             'session_hours' => 12,
             'remember_days' => 30,
+            'manual_receipt_kb' => 200, 'manual_poster_kb' => 200,
         ];
     }
 
@@ -31,6 +32,8 @@ final class FR_Settings {
             'enabled' => !empty($input['enabled']),
             'session_hours' => max(1, min(72, (int) ($input['session_hours'] ?? 12))),
             'remember_days' => max(1, min(90, (int) ($input['remember_days'] ?? 30))),
+            'manual_receipt_kb'=>max(1,min(3072,(int)($input['manual_receipt_kb']??200))),
+            'manual_poster_kb'=>max(1,min(3072,(int)($input['manual_poster_kb']??200))),
         ];
     }
 
@@ -51,6 +54,6 @@ final class FR_Settings {
 
     public static function public_config(): array {
         $all = self::all();
-        return array_intersect_key($all, array_flip(['app_name', 'society_name', 'login_message', 'enabled']));
+        return array_intersect_key($all, array_flip(['app_name', 'society_name', 'login_message', 'enabled', 'manual_receipt_kb', 'manual_poster_kb']));
     }
 }

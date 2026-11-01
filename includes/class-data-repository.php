@@ -109,7 +109,7 @@ final class FR_Data_Repository {
 
     public function poster_candidates(string $society): array {
         global $wpdb;$table=self::table('gare');$rows=$wpdb->get_results($wpdb->prepare("SELECT source_committee,source_tournament,source_year,tournament_date,poster_ref,poster_year FROM $table WHERE active=1 AND society_code=%s AND source_committee<>'' ORDER BY tournament_date DESC,id DESC",$society),ARRAY_A);if($wpdb->last_error)throw new RuntimeException('Lettura tornei non riuscita.');$result=[];$years=[];foreach($rows as $r){$year=$r['source_year']?:$r['poster_year'];if(FR_Tournament_Poster::current($r['tournament_date'])&&$year!==''&&ctype_digit($year))$years[$year]=true;}
-        foreach($rows as $row){if((ltrim($row['source_committee'],'0')?:'0')==='30')continue;if(FR_Tournament_Poster::current($row['tournament_date'])&&$row['source_year']===''&&$row['poster_year']===''&&count($years)===1)$row['source_year']=(string)array_key_first($years);if(!FR_Tournament_Poster::current($row['tournament_date'])&&($row['poster_ref']!==''||($row['source_year']===''&&$row['poster_year']==='')))continue;$key=$row['source_committee'].':'.$row['source_tournament'].':'.$row['tournament_date'];$result[$key]=$row;}
+        foreach($rows as $row){if(str_starts_with($row['source_tournament'],'m'))continue;if((ltrim($row['source_committee'],'0')?:'0')==='30')continue;if(FR_Tournament_Poster::current($row['tournament_date'])&&$row['source_year']===''&&$row['poster_year']===''&&count($years)===1)$row['source_year']=(string)array_key_first($years);if(!FR_Tournament_Poster::current($row['tournament_date'])&&($row['poster_ref']!==''||($row['source_year']===''&&$row['poster_year']==='')))continue;$key=$row['source_committee'].':'.$row['source_tournament'].':'.$row['tournament_date'];$result[$key]=$row;}
         return array_values($result);
     }
     public function save_poster(array $row,array $poster,string $society): void {
@@ -137,7 +137,7 @@ final class FR_Data_Repository {
         $price_columns = 'p.automatic_cents, p.manual_cents, p.auto_basis, COALESCE(p.manual_cents,p.automatic_cents) AS price_cents';
         if ($kind === 'gare') {
             $from = "$gare g LEFT JOIN $prices p ON p.race_id = g.id";
-            $select = "g.id, g.society_code, g.source_committee, g.source_tournament, g.source_year, g.poster_ref, g.poster_year, g.committee_name, g.tournament_key, g.tournament_ref, g.tournament_name, g.tournament_date, g.tournament_place, g.race_name, g.race_kind, g.receipt_total_cents, g.receipt_entries, g.synced_at, (g.pdf_file<>'') AS has_receipt, $price_columns, (SELECT COUNT(*) FROM $entries e WHERE e.race_id = g.id AND e.active = 1) AS entry_count";
+            $select = "g.id, g.society_code, g.source_committee, g.source_tournament, g.source_year, g.source_json, g.poster_ref, g.poster_year, g.committee_name, g.tournament_key, g.tournament_ref, g.tournament_name, g.tournament_date, g.tournament_place, g.race_name, g.race_kind, g.receipt_total_cents, g.receipt_entries, g.synced_at, (g.pdf_file<>'') AS has_receipt, $price_columns, (SELECT COUNT(*) FROM $entries e WHERE e.race_id = g.id AND e.active = 1) AS entry_count";
             $order = 'g.tournament_date DESC, g.id DESC';
         } else {
             $from = "$entries e JOIN $gare g ON e.race_id = g.id LEFT JOIN $prices p ON p.race_id = e.race_id";
@@ -165,7 +165,7 @@ final class FR_Data_Repository {
             unset($row);
         }
         foreach ($items as &$item) {
-            if($kind==='gare')$item['poster_url']=FR_Tournament_Poster::url($item);
+            if($kind==='gare'){$meta=json_decode($item['source_json']??'{}',true);$item['manual']=!empty($meta['manual']);$item['poster_url']=!empty($meta['manual'])?(!empty($meta['poster'])?rest_url(FR_Api::NS.'/tornei/'.$item['tournament_key'].'/locandina'):null):FR_Tournament_Poster::url($item);unset($item['source_json']);}
             $item['tournament_scope'] = self::tournament_scope($item['source_committee']);
             $item['committee_label'] = self::committee_label($item['source_committee']);
         }
