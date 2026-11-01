@@ -1,0 +1,44 @@
+{
+  "format": "fitet-ricevute-torneo",
+  "version": 1,
+  "tournament": {
+    "name": "Torneo provinciale di esempio",
+    "date": "2026-11-01",
+    "place": "Milano",
+    "committee": "4",
+    "committee_name": "Lombardia",
+    "total_euros": 50
+  },
+  "races": [
+    {
+      "id": "G1",
+      "name": "Singolo provinciale",
+      "kind": "single",
+      "euros": 15,
+      "entries": [
+        {
+          "name1": "MARIO ROSSI",
+          "card1": "001234"
+        },
+        {
+          "name1": "LAURA BIANCHI",
+          "card1": "005678"
+        }
+      ]
+    },
+    {
+      "id": "G2",
+      "name": "Doppio provinciale",
+      "kind": "double",
+      "euros": 20,
+      "entries": [
+        {
+          "name1": "MARIO ROSSI",
+          "card1": "001234",
+          "name2": "LAURA BIANCHI",
+          "card2": "005678"
+        }
+      ]
+    }
+  ]
+}
