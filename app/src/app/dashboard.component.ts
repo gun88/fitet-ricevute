@@ -1,7 +1,7 @@
 import { FormsModule } from '@angular/forms';
 import { PortalService } from './portal.service';
-import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd } from '@angular/router';
+import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild, inject, signal, effect } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd, NavigationStart } from '@angular/router';
 import { AuthService, PublicConfig, errorMessage } from './auth.service';
 import { DataService } from './data.service';
 import { Subscription } from 'rxjs';
@@ -21,11 +21,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   @ViewChild('userToggle') private userToggle?: ElementRef<HTMLButtonElement>;
   @ViewChild('userArea') private userArea?: ElementRef<HTMLElement>;
   private readonly navigation: Subscription = this.router.events.subscribe(event => {
+    if (event instanceof NavigationStart) this.data.notice.set('');
     if (event instanceof NavigationEnd) this.closeMenus();
+  });
+  private readonly noticeExpiry = effect(onCleanup => {
+    if (!this.data.notice()) return;
+    const timer = setTimeout(() => this.data.notice.set(''), 5000);
+    onCleanup(() => clearTimeout(timer));
   });
   readonly initial = () => Array.from(this.auth.user()?.display_name.trim() || this.auth.user()?.username || '?')[0].toLocaleUpperCase('it-IT');
   readonly seasonLabel = (season: string) => season.slice(0,4)+'/'+season.slice(-2);
   async ngOnInit(): Promise<void> {
+    this.data.notice.set('');
     this.portal.clear(); this.portal.restoreSeason(); this.data.job.set(null);
     this.data.restoreSelection();
     try { this.settings.set(await this.auth.publicConfig()); await this.data.refresh(); await this.portal.load(); }

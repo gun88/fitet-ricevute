@@ -86,7 +86,7 @@ input::placeholder { color: #8a9690; font-size: 13px; }
 .grid-toolbar label { width: min(390px, 100%); font-size: 12px; color: #506957; }
 .grid-toolbar input, .refund-settings input, .refund-settings select { display: block; margin-top: 8px; border: 1px solid #d4dfd3; border-radius: 7px; padding: 10px 12px; width: 100%; min-width: 0; background: #fff; color: #263b2e; font: inherit; }
 .grid-toolbar > span { font-size: 11px; line-height: 1.7; color: var(--muted); text-align: right; }
-.main-grid { display: block; height: min(660px, 72vh); min-height: 420px; width: 100%; }
+.main-grid { display: block; height: min(660px, 72vh); min-height: 210px; width: 100%; }
 .recap-grid { display: block; height: 400px; width: 100%; }
 .athlete-grid { display: block; height: 340px; width: 100%; }
 .grid-help { font-size: 11px; color: var(--muted); line-height: 1.8; margin: 16px 0 24px; }
@@ -326,3 +326,8 @@ select:focus-visible, textarea:focus-visible { outline: 3px solid #79b89f; outli
 .profile-grid-preferences input[role="switch"]:checked::before { left: 21px; }
 .profile-grid-preferences input[role="switch"]:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
 .profile-grid-preferences input[role="switch"]:disabled { opacity: .6; cursor: wait; }
+ag-grid-angular {--ag-auto-height-min-body-height: 32px;}
+
+@media (min-width: 1101px) {
+  .draft-refund-settings { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

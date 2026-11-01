@@ -6,6 +6,7 @@ final class FR_Admin {
     public function __construct(private FR_Repository $repository) {}
 
     public function init(): void {
+        add_action('admin_post_fitet_ricevute_development_reset', [$this, 'development_reset']);
         add_action('admin_post_fitet_ricevute_save_config', [$this, 'save_config']);
         add_action('admin_menu', [$this, 'menu']);
         add_action('admin_init', [$this, 'settings']);
@@ -113,11 +114,34 @@ final class FR_Admin {
                 <?php submit_button('Salva configurazione'); ?>
             </form>
 <h2>Import/export dati</h2><p><a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fitet-ricevute-backup')); ?>">Importa / esporta dati</a></p>
+            <?php if (FR_Development_Reset::available()): ?>
+            <h2>Strumenti di sviluppo</h2>
+            <?php if (isset($_GET['development_reset'])): ?><div class="notice notice-success"><p>Dati azzerati. Configurazioni e account conservati. Accedi nuovamente al portale.</p></div><?php endif; ?>
+            <?php if (!empty($_GET['remaining_pdfs'])): ?><div class="notice notice-warning"><p>Alcuni PDF non sono stati eliminati: verifica i permessi della cartella ricevute-pdf.</p></div><?php endif; ?>
+            <p>Elimina tornei, gare, iscrizioni, prezzi, bozze, rimborsi e PDF originali. Conserva impostazioni, credenziali, firma, timbro, account e preferenze personali. Gli utenti del portale dovranno accedere nuovamente.</p>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="fitet_ricevute_development_reset">
+                <?php wp_nonce_field('fitet_ricevute_development_reset'); ?>
+                <p><label><input type="checkbox" name="confirm_reset" value="1" required> Confermo la cancellazione definitiva dei dati del plugin.</label></p>
+                <button class="button" type="submit">Azzera dati di sviluppo</button>
+            </form>
+            <?php endif; ?>
             <h2>Funzionalità del portale</h2>
             <p>Sincronizza ricevute · Modifica prezzi tornei · Crea rimborsi</p>
             <p>Il portale gestisce ricevute, iscrizioni, prezzi, schede giocatore e ricevute di rimborso.</p>
         </div>
         <?php
+    }
+
+    public function development_reset(): void {
+        $this->guard();
+        if (!FR_Development_Reset::available()) wp_die('Reset disponibile solo in localhost.', '', ['response' => 403]);
+        check_admin_referer('fitet_ricevute_development_reset');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || ($_POST['confirm_reset'] ?? '') !== '1') wp_die('Conferma la cancellazione dei dati.', '', ['response' => 400]);
+        try { $remaining = FR_Development_Reset::run(); }
+        catch (Throwable $error) { wp_die(esc_html($error->getMessage()), 'Reset dati', ['response' => 400, 'back_link' => true]); }
+        wp_safe_redirect(add_query_arg(['page' => 'fitet-ricevute', 'development_reset' => '1', 'remaining_pdfs' => $remaining], admin_url('admin.php')));
+        exit;
     }
 
     public function save_config(): void {

@@ -1,6 +1,6 @@
 # FITET Ricevute
 
-Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.12.1**.
+Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.12.3**.
 
 ## Pagine del portale
 
@@ -277,3 +277,11 @@ Setup/ripristino browser con `tests/export-ui-fixture.php` e relativo comando `c
 ## Tabelle e profilo 0.12.1
 
 Nel profilo ogni utente sceglie altezza automatica (on/off) e spaziatura Standard/Compatta per tutte le griglie desktop. Le preferenze sono salvate sul server per l’account del portale; non cambiano le card mobile. I filtri di colonna si aprono dalle icone nelle intestazioni, senza riga aggiuntiva; le colonne Azioni non sono filtrabili. Eliminati i link ridondanti nelle intestazioni della bozza e dei dettagli torneo/gara, e il filtro delle sole gare con iscrizioni.
+
+## Reset di sviluppo 0.12.2
+
+In Configurazione, solo per amministratori e quando sia l’URL configurato del sito sia l’host richiesto sono localhost/127.0.0.1/::1, è disponibile “Azzera dati di sviluppo”. Richiede conferma esplicita e nonce WordPress. Cancella le sei tabelle dei dati (inclusi prezzi manuali, bozze ed emissioni), PDF nella sola cartella ricevute-pdf e stato/data di sincronizzazione. Conserva configurazioni, credenziali, firma/timbro, account e preferenze personali. Revoca le sessioni del portale: è necessario un nuovo accesso. Il reset è bloccato durante un ripristino o un passo attivo della sincronizzazione. Eventuali errori di rimozione PDF vengono segnalati; nessuna cancellazione ricorsiva delle cartelle uploads.
+
+## Messaggi e bozza 0.12.3
+
+Le conferme delle operazioni scompaiono dopo cinque secondi e al cambio pagina. Il timer viene rinnovato quando cambia il messaggio. Nella bozza, Società è un input in sola lettura con etichetta, allineato agli altri campi.

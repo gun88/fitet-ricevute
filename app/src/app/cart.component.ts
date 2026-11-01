@@ -21,10 +21,10 @@ import { TableView } from './table-preferences';
  @if(lastEmission()){<p class="notice">Rimborso registrato. <a [routerLink]="'/rimborsi/'+lastEmission()">Apri il dettaglio e riscarica le ricevute</a>.</p>}
  <fr-entity-grid kind="entries" [rows]="portal.cartRows()" viewKey="cart" label="bozza rimborso" [cartMode]="true" />
  @if(portal.cartRows().length){
-  <div class="recap-totals"><div><span>Iscrizioni</span><strong>{{portal.cartRows().length}}</strong></div><div><span>Totale</span><strong>{{money(total())}}</strong></div></div>
+  <div class="recap-totals"><div><span>Iscrizioni</span><strong>{{portal.cartRows().length}}</strong></div><div><span>Giocatori</span><strong>{{athletes().length}}</strong></div><div><span>Totale</span><strong>{{money(total())}}</strong></div></div>
   @if(invalid()){<p class="error-box">Ci sono quote già rimborsate, non più disponibili o senza prezzo. Rimuovile o aggiorna i prezzi prima di emettere.</p>}
-  <section class="refund-settings" aria-label="Impostazioni rimborso">
-   <p>Società: <strong>{{issuer()||'Da configurare in wp-admin'}}</strong></p>
+  <section class="refund-settings draft-refund-settings" aria-label="Impostazioni rimborso">
+   <label>Società<input type="text" name="issuer" [value]="issuer()||'Da configurare in wp-admin'" readonly></label>
    <label>Data ricevuta<input type="date" name="date" [(ngModel)]="options.date"></label>
 
    <label>Ripartizione doppi<select [ngModel]="allocation()" (ngModelChange)="allocation.set($event)" aria-label="Ripartizione doppi"><option value="half">Metà per atleta</option><option value="first">Tutta al primo atleta</option><option value="second">Tutta al secondo atleta</option></select></label>
@@ -60,6 +60,6 @@ export class CartComponent implements OnInit, OnDestroy {
    const options={...this.options,issuer:this.issuer().trim(),allocation:this.allocation()};
    let emission;try{emission=await this.portal.issue(rows,options,this.requestKey);}catch(error){await this.portal.refresh();await this.portal.data.refresh();throw error;}
    this.lastEmission.set(emission.id);this.requestKey=crypto.randomUUID().replaceAll('-','');
-   await this.portal.data.refresh();await this.portal.refresh();this.portal.data.notice.set('Rimborso #'+emission.id+' emesso e registrato.');await this.router.navigateByUrl('/rimborsi/'+emission.id);
+   await this.portal.data.refresh();await this.portal.refresh();await this.router.navigateByUrl('/rimborsi/'+emission.id);this.portal.data.notice.set('Rimborso #'+emission.id+' emesso e registrato.');
  });}
 }

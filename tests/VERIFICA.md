@@ -398,3 +398,7 @@ Le suite storiche dei PDF individuali restano riferite al vecchio generatore, fu
 ## Aggiornamento 0.12.1 — Profilo e filtri tabella
 
 `tests/table-profile-ui.cjs` verifica accesso, salvataggio delle preferenze sul server, validazione della densità, protezione CSRF e rifiuto anonimi, ripristino con nuovo browser, switch autoHeight e ripristino altezza fissa, spaziatura compatta, applicazione alla pagina giocatori, filtri dalle intestazioni e ordinamento, assenza dei filtri Azioni e della riga aggiuntiva, rimozione dei link richiesti e della checkbox Gare, conservazione delle card mobile e assenza di overflow/errori browser. Il test ripristina le preferenze iniziali.
+
+## Reset di sviluppo 0.12.2
+
+`php tests/development-reset.php`: 25 controlli sull’installazione isolata. Verifica blocco host esterni, sito configurato esterno anche con host locale, utenti senza privilegi, lock ripristino/sincronizzazione, cancellazione delle sei tabelle/PDF/stato sincronizzazione, conservazione impostazioni/account/credenziali/immagini/preferenze/file estranei e rilascio del lock. Ripristina il backup al termine.

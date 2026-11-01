@@ -10,7 +10,7 @@ const {chromium,request}=require(process.env.FR_PLAYWRIGHT_MODULE||'../app/node_
  const out=resolve(__dirname,'.runtime/admin-output');mkdirSync(out,{recursive:true});
  try{
   await page.goto(origin+'/wp-login.php');await page.locator('#user_login').fill('wp-test-admin');await page.locator('#user_pass').fill('WP-test-only-2026!');await page.locator('#wp-submit').click();await page.waitForURL('**/wp-admin/**');await page.goto(config);
-  check(await page.locator('.fr-admin form').count()===1&&await page.getByRole('button',{name:/^Salva/}).count()===1,'one configuration form and one save button');
+  check(await page.locator('.fr-admin form').filter({has:page.locator('[name=action][value=fitet_ricevute_save_config]')}).count()===1&&await page.getByRole('button',{name:/^Salva/}).count()===1,'one configuration form and one save button');
   await page.getByLabel('Nome società',{exact:true}).fill('Società configurata UI');await page.getByLabel('Username extranet FITeT',{exact:true}).fill('Societa.BackupSource');await page.getByLabel('Password extranet FITeT',{exact:true}).fill('Source-password-test!');
   await page.getByLabel('Immagine firma',{exact:true}).setInputFiles(resolve(__dirname,'.runtime/signature-a.png'));await page.getByLabel('Immagine timbro',{exact:true}).setInputFiles(resolve(__dirname,'.runtime/stamp.png'));await page.getByRole('button',{name:'Salva configurazione',exact:true}).click();await page.getByText('Configurazione salvata.',{exact:true}).waitFor();
   check(await page.getByAltText('Anteprima firma delle ricevute').isVisible()&&await page.getByAltText('Anteprima timbro delle ricevute').isVisible(),'single save uploads signature and stamp');
