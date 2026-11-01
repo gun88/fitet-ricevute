@@ -23,9 +23,15 @@
     </div>
   </header>
   @if(mobileOpen()){<div class="menu-backdrop" aria-hidden="true" (click)="closeMenus(true)"></div>}
+  @if (data.notice() === 'Iscrizioni aggiunte alla bozza rimborso.') {
+    <div class="notice-toast" [attr.inert]="mobileOpen()?'':null">
+      <p role="status" aria-atomic="true">{{data.notice()}}</p>
+      <button type="button" class="notice-toast-close" aria-label="Chiudi notifica" (click)="data.notice.set('')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    </div>
+  }
   <main class="dashboard-main data-main" [attr.inert]="mobileOpen()?'':null">
     @if (data.error()) { <p class="error-box" role="alert">{{ data.error() }}</p> }
-    @if (data.notice()) { <p class="notice" role="status">{{ data.notice() }}</p> }
+    @if (data.notice() && data.notice() !== 'Iscrizioni aggiunte alla bozza rimborso.') { <p class="notice" role="status">{{ data.notice() }}</p> }
     @if (data.loading()) { <p class="load-note" role="status">Caricamento dei dati…</p> }
     <router-outlet />
   </main>

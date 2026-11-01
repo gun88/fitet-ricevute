@@ -24,6 +24,12 @@ final class FR_Refund_Amounts {
             $clean[]=['beneficiary'=>$key,'reason'=>sanitize_textarea_field($reason),'cents'=>$cents];$people[$key]['cents']+=$cents;
         }
         foreach($people as $person)if($person['cents']<0)throw new RuntimeException('Il saldo da consegnare a un atleta non può essere negativo.');
+        $methods=$options['payment_methods']??[];
+        if(!is_array($methods)||count($methods)>2000)throw new RuntimeException('Modalità di pagamento per atleta non valide.');
+        foreach($methods as $method)if(!in_array($method,['transfer','cash'],true))throw new RuntimeException('Scegli bonifico o contanti per ogni atleta.');
+        $normalized=[];$totals=['transfer'=>0,'cash'=>0];
+        foreach($people as $key=>&$person){$method=$methods[$key]??$payment;$person['payment_method']=$method;$normalized[$key]=$method;$totals[$method]+=$person['cents'];}unset($person);
+        $options['payment_methods']=$normalized;$options['payment_totals']=$totals;
         $options['adjustments']=$clean;$options['settlement']=$people;
         return array_sum(array_column($people,'cents'));
     }

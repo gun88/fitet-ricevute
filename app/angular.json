@@ -1,7 +1,9 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
-  "cli": { "analytics": false },
+  "cli": {
+    "analytics": false
+  },
   "projects": {
     "fitet-ricevute": {
       "projectType": "application",
@@ -11,30 +13,59 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": { "base": "../assets/app", "browser": "" },
+            "outputPath": {
+              "base": "../assets/app",
+              "browser": ""
+            },
             "browser": "src/main.ts",
             "index": "src/index.html",
             "tsConfig": "tsconfig.app.json",
-            "styles": ["src/styles.css"],
-            "assets": [{ "glob": "**/*", "input": "src/fonts", "output": "fonts" }],
+            "styles": [
+              "src/styles.css"
+            ],
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "src/fonts",
+                "output": "fonts"
+              },
+              {
+                "glob": "**/*",
+                "input": "src/import-templates",
+                "output": "import-templates"
+              }
+            ],
             "outputHashing": "all"
           },
           "configurations": {
             "production": {
-              "budgets": [{ "type": "initial", "maximumWarning": "500kB", "maximumError": "700kB" }],
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "700kB"
+                }
+              ],
               "optimization": true,
               "sourceMap": false,
               "extractLicenses": true
             },
-            "development": { "optimization": false, "sourceMap": true }
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
           },
           "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": { "proxyConfig": "proxy.conf.json" },
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
-            "development": { "buildTarget": "fitet-ricevute:build:development" }
+            "development": {
+              "buildTarget": "fitet-ricevute:build:development"
+            }
           },
           "defaultConfiguration": "development"
         }

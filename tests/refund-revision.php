@@ -15,6 +15,7 @@ try{
  $cart=$wf->cart($uid);rr(in_array($ids[2],array_map('intval',array_column($cart['items'],'id')),true),'ordinary draft remains intact during edit');
  $bad=$input;$bad['revision']=3;$bad['options']['adjustments']=[['beneficiary'=>'card:missing','reason'=>'Invalid','cents'=>100]];rejects(fn()=>$wf->revise($uid,$eid,$bad),'unknown adjustment beneficiary rejected');rr($wf->emission($eid)['options']['revision']===3,'failed edit rolls back');
  $bad['options']['adjustments']=[['beneficiary'=>'card:'.$b['athlete1_card'],'reason'=>'Excessive debt','cents'=>-100000]];rejects(fn()=>$wf->revise($uid,$eid,$bad),'negative beneficiary balance rejected');
+ $methodEdit=$input;$methodEdit['revision']=3;$methodEdit['options']['payment_methods']=['card:'.$b['athlete1_card']=>'cash'];$methodResult=$wf->revise($uid,$eid,$methodEdit);rr($methodResult['options']['settlement']['card:'.$b['athlete1_card']]['payment_method']==='cash'&&$methodResult['total_cents']===$edited['total_cents'],'revision can change beneficiary method without changing amount');
  $export=FR_Backup::export();FR_Backup::validate($export);rr(true,'backup validates revised settlements and history');
  rr(!str_contains(wp_json_encode($wf->emission($eid)),'"file":'),'private filenames absent from detail and history');
  echo "$checks revision and settlement checks passed.\n";

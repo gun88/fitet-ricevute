@@ -1,11 +1,11 @@
 import type { Emission } from './portal.service';
-import { settlement } from './refund-settlement';
+import { PaymentMethod, paymentTotals, settlement } from './refund-settlement';
 import { athleteSummary } from './refund-model';
 import { names } from './format';
 export interface OriginalReceipt {id:string;reference:string;sha256:string;source_url:string;tournament_name:string;tournament_date:string;tournament_key:string;available:boolean;pages?:number;firstPage?:number;lastPage?:number;problem?:string}
 export interface ReceiptManifest {items:OriginalReceipt[];entry_receipts:Record<string,string>;legacy:boolean}
 export interface RefundLine {beneficiary:string;card:string;date:string;place:string;tournament:string;race:string;athletes:string;cents:number;receipt:string;notes:string;entryId:number}
-export interface RefundPlan {emission:Emission;beneficiaries:{name:string;card:string;cents:number;count:number}[];adjustments:{beneficiary:string;card:string;reason:string;cents:number}[];lines:RefundLine[];receipts:OriginalReceipt[];total:number;legacy:boolean}
+export interface RefundPlan {emission:Emission;beneficiaries:{name:string;card:string;cents:number;count:number;payment_method:PaymentMethod}[];paymentTotals:{transfer:number;cash:number};adjustments:{beneficiary:string;card:string;reason:string;cents:number}[];lines:RefundLine[];receipts:OriginalReceipt[];total:number;legacy:boolean}
 export function refundPlan(emission:Emission,manifest:ReceiptManifest):RefundPlan {
  const rows=emission.items.map(row=>({...row,reimbursed:false,price_cents:row.paid_cents??row.price_cents}));
  if(!rows.length||rows.some(row=>!Number.isSafeInteger(row.price_cents)||row.price_cents!<0)||new Set(rows.map(row=>row.id)).size!==rows.length)throw new Error('Quote dell’emissione non valide.');
@@ -19,5 +19,5 @@ export function refundPlan(emission:Emission,manifest:ReceiptManifest):RefundPla
  }
  const adjustments=(emission.options.adjustments||[]).map(a=>{const person=settled.find(p=>p.key===a.beneficiary);if(!person)throw new Error('Beneficiario rettifica non disponibile.');return {beneficiary:person.name,card:person.card,reason:a.reason,cents:a.cents};});
  if(lines.reduce((sum,line)=>sum+line.cents,0)+adjustments.reduce((sum,a)=>sum+a.cents,0)!==total)throw new Error('La ripartizione non coincide con il totale del rimborso.');
- return {emission,beneficiaries:settled.map(person=>({name:person.name,card:person.card,cents:person.pending_cents!,count:person.quotes})),adjustments,lines,receipts,total,legacy:manifest.legacy};
+ return {emission,beneficiaries:settled.map(person=>({name:person.name,card:person.card,cents:person.pending_cents!,count:person.quotes,payment_method:person.payment_method})),paymentTotals:paymentTotals(settled),adjustments,lines,receipts,total,legacy:manifest.legacy};
 }

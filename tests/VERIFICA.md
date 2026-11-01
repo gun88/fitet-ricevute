@@ -415,3 +415,15 @@ Le suite storiche dei PDF individuali restano riferite al vecchio generatore, fu
 - Controllo visivo: PDF riepilogo e dettaglio verticale e foglio Excel riepilogo renderizzati; pagina Tornei verificata a 390 px senza overflow.
 
 Compilazione di verifica esclusivamente in `tests/.runtime/qa-app`; nessuna sostituzione della build distribuita in `assets/app`.
+
+### Pagamenti misti per atleta
+
+`tests/athlete-payments.php`: 9 controlli (metodi distinti, aggregazione più iscrizioni per atleta, fallback legacy, doppio con centesimo dispari, metodo non valido e saldo nullo). `tests/refund-revision.php`: 19 controlli, incluso cambio modalità di un beneficiario senza variazione dell’importo e backup dello storico. `tests/athlete-payments-export.cjs`: PDF/Excel con tre atleti, due pagamenti cash e uno transfer, quote ripetute aggregate e subtotali esatti. `tests/athlete-payments-ui.cjs`: 8 controlli su default operatore, select desktop e card mobile, subtotali reattivi, esclusione degli zeri e assenza di overflow/errori. Superati anche i 19 controlli export e 10 sulle rettifiche. Ricalcolo indipendente dei subtotali Excel verificato modificando la modalità di un atleta. Riepilogo PDF e card mobile verificati visivamente. Build del sito invariata, compilazione solo nell’ambiente di test.
+
+### Accordion iscrizioni disponibili in modifica rimborso
+
+`tests/refund-available-ui.cjs`: 10 controlli browser su apertura inizialmente chiusa, montaggio della griglia solo dopo espansione, esclusione quote rimborsate/già incluse, filtro, aggiunta dal + desktop, disponibilità di quote eventualmente presenti nella bozza ordinaria, card mobile, aggiunta dell’ultima quota e assenza di richieste di modifica alla bozza ordinaria/errori browser. Dati simulati nel browser, nessuna emissione o modifica al database. Compilazione solo nella copia di test.
+
+### Import JSON/Excel di un torneo manuale
+
+`tests/manual-import.cjs`: 17 controlli su equivalenza dei modelli JSON/XLSX, singolo/doppio, tessere con zeri, euro numerici, date/versioni/importi non validi, ID e iscrizioni duplicate, doppio incompleto, numeri tessera non sicuri, esclusione allegati/conferme, formule Excel, gara inesistente e secondo torneo nel file. `tests/manual-import-ui.cjs`: 15 controlli browser su quattro azioni, download dei modelli, compilazione dei campi e degli atleti, obbligo della ricevuta manuale, reset degli allegati, errore senza perdita dati, nessuna chiamata al salvataggio e layout mobile. Modello XLSX creato con artifact-tool, renderizzato e riletto con il parser dell’app; il lettore normalizza in memoria i namespace OOXML prefissati per compatibilità con ExcelJS. Build solo nella copia isolata, assets del sito invariati.

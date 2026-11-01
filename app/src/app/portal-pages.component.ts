@@ -1,6 +1,7 @@
+import { emissionPayments, emissionPaymentLabel, paymentTotals, paymentLabel } from './refund-settlement';
 import { tournamentType } from './format';
 import { FormsModule } from '@angular/forms';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { PortalService } from './portal.service';
@@ -8,8 +9,8 @@ import { EntityGridComponent } from './entity-grid.component';
 import { errorMessage } from './auth.service';
 import { money, dateLabel } from './format';
 @Component({selector:'fr-portal-page',imports:[EntityGridComponent,RouterLink],template:`
- <div class="page-heading"><div><h1>{{title}}</h1><p class="dashboard-subtitle">{{subtitle}}</p></div>
- @if(kind==='tournaments'){<div class="sync-controls"><a class="secondary-button" routerLink="/tornei/nuovo">Aggiungi torneo</a><button class="sync-button" [disabled]="portal.data.locked()||portal.season()===''" (click)="sync()">{{portal.data.syncing()?'Sincronizzazione…':'Sincronizza ricevute'}}</button><span class="last-sync">Ultima sincronizzazione: {{portal.data.lastSyncLabel()}}</span></div>}</div>
+ <div class="page-heading"><div><div class="page-title-row"><h1>{{title}}</h1>@if(kind==='tournaments'){<div class="page-advanced-actions" #advancedActions><button #advancedTrigger class="page-more-button" type="button" aria-label="Funzioni avanzate Tornei" aria-controls="tournament-advanced-menu" [attr.aria-expanded]="advancedOpen()" (click)="advancedOpen.update(toggle)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>@if(advancedOpen()){<nav id="tournament-advanced-menu" class="page-advanced-menu" aria-label="Funzioni avanzate"><span>Funzioni avanzate</span><a routerLink="/tornei/nuovo" (click)="advancedOpen.set(false)">Aggiungi torneo</a></nav>}</div>}</div><p class="dashboard-subtitle">{{subtitle}}</p></div>
+ @if(kind==='tournaments'){<div class="sync-controls"><button class="sync-button" [disabled]="portal.data.locked()||portal.season()===''" (click)="sync()">{{portal.data.syncing()?'Sincronizzazione…':'Sincronizza ricevute'}}</button><span class="last-sync">Ultima sincronizzazione: {{portal.data.lastSyncLabel()}}</span></div>}</div>
  @if(kind==='emissions'){<div class="recap-totals">@if(paymentTotals().transfer){<div><span>Totale bonifico</span><strong>{{money(paymentTotals().transfer)}}</strong></div>}@if(paymentTotals().cash){<div><span>Totale contanti</span><strong>{{money(paymentTotals().cash)}}</strong></div>}</div>}
  @if(kind==='tournaments' && (portal.data.syncing() || portal.data.job()) && (!portal.data.job()?.done || hiddenJob()!==portal.data.job()?.id)){
   <div class="sync-progress notice">@if(portal.data.job()?.done){<button class="text-button" aria-label="Nascondi esito sincronizzazione" (click)="hiddenJob.set(portal.data.job()!.id)">Chiudi ×</button>}<div class="sync-progress-label" role="status"><span>@if(portal.data.job()){@if(portal.data.job()!.phase==='posters'){Ricerca locandine: {{portal.data.job()!.poster_processed}} / {{portal.data.job()!.poster_total}} · }Ricevute elaborate: {{portal.data.job()!.processed}} / {{portal.data.job()!.total}}}@else{Accesso all’extranet e ricerca automatica delle ricevute…}</span>@if(portal.data.job()){<strong>{{portal.data.syncProgress()}}%</strong>}</div><progress max="100" [attr.value]="portal.data.job()?portal.data.syncProgress():null" aria-label="Avanzamento elaborazione ricevute"></progress></div>
@@ -21,11 +22,18 @@ import { money, dateLabel } from './format';
  </fr-entity-grid>
 `})
 export class PortalPageComponent {
+ readonly advancedOpen=signal(false);readonly toggle=(value:boolean)=>!value;
+ @ViewChild('advancedActions') private advancedActions?:ElementRef<HTMLElement>;
+ @ViewChild('advancedTrigger') private advancedTrigger?:ElementRef<HTMLButtonElement>;
+ @HostListener('document:click',['$event']) closeAdvancedOutside(event:MouseEvent){if(this.advancedOpen()&&!this.advancedActions?.nativeElement.contains(event.target as Node))this.advancedOpen.set(false);}
+ @HostListener('document:focusin',['$event']) closeAdvancedFocus(event:FocusEvent){if(this.advancedOpen()&&!this.advancedActions?.nativeElement.contains(event.target as Node))this.advancedOpen.set(false);}
+ @HostListener('document:keydown.escape') closeAdvancedEscape(){if(this.advancedOpen()){this.advancedOpen.set(false);this.advancedTrigger?.nativeElement.focus();}}
+
  readonly portal=inject(PortalService);private readonly route=inject(ActivatedRoute);readonly query=toSignal(this.route.queryParamMap);
  readonly kind=this.route.snapshot.data['kind'] as 'tournaments'|'races'|'entries'|'emissions';
  readonly title={tournaments:'Tornei',races:'Gare',entries:'Iscrizioni',emissions:'Rimborsi Emessi'}[this.kind];
  readonly subtitle={tournaments:'Tutti i tornei della stagione selezionata.',races:'Quote, riconciliazione e gare dei tornei.',entries:'Aggiungi le quote alla bozza rimborso per la revisione finale.',emissions:'Registro delle emissioni con importi e iscrizioni conservati.'}[this.kind];
- readonly money=money;readonly paymentTotals=computed(()=>this.portal.history().reduce((totals,e)=>{totals[e.options.payment_method==='cash'?'cash':'transfer']+=e.total_cents;return totals;},{cash:0,transfer:0}));
+ readonly money=money;readonly paymentTotals=computed(()=>this.portal.history().reduce((totals,e)=>{const payments=paymentTotals(emissionPayments(e));totals.cash+=payments.cash;totals.transfer+=payments.transfer;return totals;},{cash:0,transfer:0}));
  readonly hiddenJob=this.portal.data.dismissedSyncJob;
  readonly onlyEntries=signal(this.readOnly());
  private key(){return this.portal.preferenceKey('only-entries:'+this.kind);}
@@ -43,12 +51,12 @@ export class PortalPageComponent {
 @Component({selector:'fr-portal-detail',imports:[EntityGridComponent,RouterLink,FormsModule],template:`
  <div class="page-heading"><div><h1>{{title()}}</h1><p class="dashboard-subtitle">{{kind==='tournament'?'Dettaglio torneo':kind==='race'?'Dettaglio gara':kind==='player'?'Dettaglio giocatore':'Dettaglio rimborso'}}</p></div>@if(kind==='player'||kind==='emission'){<a class="secondary-button" [routerLink]="kind==='emission'?'/rimborsi':'/tornei'">Torna all’elenco</a>}</div>
  @if(info();as row){<dl class="detail-summary">
-  @if(kind==='emission'){<dt>Emesso il</dt><dd>{{timestamp(row.created_at)}}</dd><dt>Operatore</dt><dd>#{{row.user_id}}</dd><dt>Totale emesso</dt><dd>{{money(row.total_cents)}}</dd><dt>Emittente</dt><dd>{{row.options.issuer}}</dd><dt>Data ricevuta</dt><dd>{{dateLabel(row.options.date)}}</dd><dt>Modalità rimborso</dt><dd>{{row.options.payment_method==='cash'?'Contanti':'Bonifico'}}</dd><dt>Note</dt><dd>{{row.options.notes||'—'}}</dd>@if(row.options.updated_at){<dt>Ultima modifica</dt><dd>{{timestamp(row.options.updated_at)}} · operatore #{{row.options.updated_by}}</dd>}}
+  @if(kind==='emission'){<dt>Emesso il</dt><dd>{{timestamp(row.created_at)}}</dd><dt>Operatore</dt><dd>#{{row.user_id}}</dd><dt>Totale emesso</dt><dd>{{money(row.total_cents)}}</dd><dt>Emittente</dt><dd>{{row.options.issuer}}</dd><dt>Data ricevuta</dt><dd>{{dateLabel(row.options.date)}}</dd><dt>Modalità rimborso</dt><dd>{{paymentDescription(row)}}</dd><dt>Note</dt><dd>{{row.options.notes||'—'}}</dd>@if(row.options.updated_at){<dt>Ultima modifica</dt><dd>{{timestamp(row.options.updated_at)}} · operatore #{{row.options.updated_by}}</dd>}}
   @else if(kind==='player'){<dt>Giocatore</dt><dd>{{row.name}} ({{row.card||'—'}})</dd><dt>Partecipazioni nella stagione selezionata</dt><dd>{{entries().length}}</dd>}
   @else{<dt>Torneo</dt><dd><a [routerLink]="'/tornei/'+row.tournament_key">{{row.tournament_name}}</a></dd><dt>Data</dt><dd>{{dateLabel(row.tournament_date)}}</dd><dt>Località</dt><dd>{{row.tournament_place}}</dd><dt>Tipo</dt><dd>{{tournamentType(row)}}</dd>@if(kind==='tournament'){<dt>Locandina</dt><dd>@if(row.poster_url){<a [href]="row.poster_url" target="_blank" rel="noopener noreferrer">Visualizza locandina</a>}@else{ {{row.tournament_scope==='national'?'Non prevista per i tornei nazionali':'Non disponibile'}} }</dd>}@if(kind==='race'){<dt>Gara</dt><dd>{{row.race_name}}</dd><dt>Quota</dt><dd>{{money(row.price_cents)}}</dd>}<dt>Rimborsi</dt><dd class="refund-progress-summary"><strong>{{refundSummary().count}}</strong><span>({{refundSummary().label}})</span></dd>}
  </dl>
  @if(kind==='emission'){
- @if(row.options.settlement){<h2>Riepilogo rimborsi</h2><div class="settlement-summary">@for(person of settlements(row);track $index){<p>{{person.name}} ({{person.card}}): <strong>{{money(person.cents)}}</strong></p>}@if(row.total_cents){<p>Totale {{row.options.payment_method==='cash'?'contanti':'bonifico'}}: {{money(row.total_cents)}}</p>}</div>}
+ @if(row.options.settlement){<h2>Riepilogo rimborsi</h2><div class="settlement-summary">@for(person of settlements(row);track $index){<p>{{person.name}} ({{person.card}}): <strong>{{money(person.cents)}}</strong> · {{paymentLabel(person.payment_method)}}</p>}@if(payments(row).transfer){<p>Totale bonifico: {{money(payments(row).transfer)}}</p>}@if(payments(row).cash){<p>Totale contanti: {{money(payments(row).cash)}}</p>}</div>}
  @if(row.options.history?.length){<details class="revision-history"><summary>Versioni precedenti ({{row.options.history.length}})</summary><ul>@for(version of row.options.history;track version.revision){<li>Versione {{version.revision+1}} · {{money(version.total_cents)}} · sostituita il {{timestamp(version.replaced_at)}} dall’operatore #{{version.replaced_by}}</li>}</ul></details>}
  <div class="print-controls"><a class="secondary-button" [routerLink]="'/rimborsi/'+row.id+'/modifica'">Modifica rimborso</a><button class="sync-button" (click)="download('pdf')" [disabled]="portal.data.locked()">Stampa rimborso (PDF)</button><button class="secondary-button" (click)="download('xlsx')" [disabled]="portal.data.locked()">Esporta Excel</button><button class="secondary-button" (click)="download('zip')" [disabled]="portal.data.locked()">Scarica PDF + Excel (ZIP)</button></div>
  <p class="grid-help">Un unico PDF con quanto consegnare a ogni atleta, dettaglio quote e ricevute originali. L’Excel contiene quattro fogli con dati filtrabili e totali calcolati.</p>
@@ -63,7 +71,9 @@ export class PortalDetailComponent {
  readonly portal=inject(PortalService);private readonly route=inject(ActivatedRoute);readonly params=toSignal(this.route.paramMap);
  readonly kind=this.route.snapshot.data['kind'] as 'tournament'|'race'|'player'|'emission';readonly id=computed(()=>this.params()?.get('id')||this.params()?.get('key')||'');
  readonly refundSummary=computed(()=>this.portal.refundStats(this.info()?.tournament_key||'',this.kind==='race'?Number(this.info()?.race_id||this.info()?.id):undefined));
- settlements(row:any):any[]{return Object.values(row.options.settlement||{});}
+ readonly paymentLabel=paymentLabel;readonly paymentDescription=emissionPaymentLabel;
+ payments(row:any){return paymentTotals(emissionPayments(row));}
+ settlements(row:any):any[]{return Object.entries(row.options.settlement||{}).map(([key,p]:[string,any])=>({...p,payment_method:row.options.payment_methods?.[key]||p.payment_method||row.options.payment_method||'transfer'}));}
  readonly tournamentType=tournamentType;readonly money=money;readonly dateLabel=dateLabel;readonly timestamp=(date:string)=>new Date(date).toLocaleString('it-IT');
  readonly emission=computed(()=>this.portal.emissions().find(e=>String(e.id)===this.id()));
  readonly entries=computed(()=>this.kind==='emission'?this.portal.filter(this.emission()?.items||[]):this.kind==='player'?this.portal.playerRows(this.id()):this.portal.entries().filter(r=>this.kind==='race'?String(r.race_id)===this.id():r.tournament_key===this.id()));
