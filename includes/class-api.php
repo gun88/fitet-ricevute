@@ -35,6 +35,7 @@ final class FR_Api {
             'callback' => [$this->auth, 'me'],
             'permission_callback' => [$this->auth, 'permission'],
         ]);
+        register_rest_route(self::NS,'/auth/password',['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'callback'=>[$this->auth,'change_password']]);
         register_rest_route(self::NS, '/auth/logout', [
             'methods' => 'POST',
             'callback' => [$this->auth, 'logout'],

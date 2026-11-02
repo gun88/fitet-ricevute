@@ -314,3 +314,7 @@ Nel form Aggiungi torneo il comitato si seleziona dalla mappa unica includes/com
 ### Icone Lucide
 
 Le icone dell’interfaccia e i comandi AG Grid usano il pacchetto ufficiale @lucide/angular, fissato alla versione 1.66.0. Registro limitato alle icone utilizzate in app/src/app/icons.ts e componente condiviso fr-icon. Include aggiunta/rimozione, modifica, stampa, menu, logout/profilo, chiusura, disclosure e filtri/ordinamento/paginazione AG Grid. Nessuna richiesta a CDN o font esterni. Icone decorative nascoste agli screen reader; nomi accessibili sui comandi conservati. Licenza inclusa in docs/LICENSE-LUCIDE.txt. Gli avatar con iniziali e il marchio dell’app restano elementi dell’identità visiva.
+
+### Profilo e riepilogo rimborsi
+
+Il profilo separa account, preferenze e cambio password. Per modificare la password servono quella attuale e una nuova di almeno 12 caratteri con conferma; il salvataggio chiude tutte le sessioni dell’operatore e richiede un nuovo accesso. Lo storico delle revisioni mostra il nome dell’operatore e lo conserva nelle nuove revisioni. Il riepilogo per beneficiario nel dettaglio rimborso usa AG Grid su desktop e card con ricerca su mobile.

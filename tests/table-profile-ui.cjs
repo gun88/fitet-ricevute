@@ -34,7 +34,7 @@ const {chromium}=require(process.env.FR_PLAYWRIGHT_MODULE||'../app/node_modules/
   await go('bozza-rimborso','Bozza rimborso');check(await p.getByRole('link',{name:'Aggiungi iscrizioni',exact:true}).count()===0,'draft redundant link removed');
   await go('utente','Profilo utente');
   await p.getByRole('switch',{name:'Altezza automatica'}).check();await p.getByText('Preferenze salvate.',{exact:true}).waitFor();
-  await p.getByLabel('Spaziatura tabelle').selectOption('compact');await p.waitForFunction(()=>!document.querySelector('.profile-grid-preferences').disabled);
+  await p.getByLabel('Spaziatura tabelle').selectOption('compact');await p.waitForFunction(()=>!document.querySelector('.profile-preferences').disabled);
   const me=await(await c.request.get(api+'auth/me')).json();check(me.grid_preferences.auto_height&&me.grid_preferences.density==='compact','profile choices persisted on server');
   const other=await browser.newContext();
   try{
@@ -52,7 +52,7 @@ const {chromium}=require(process.env.FR_PLAYWRIGHT_MODULE||'../app/node_modules/
   await p.reload();await p.locator('#races-grid.auto-height').waitFor();check(true,'automatic height survives reload');
   await go('giocatori','Giocatori');await p.locator('#players-grid.auto-height').waitFor();check(true,'preferences apply to player directory');
   await go('utente','Profilo utente');await p.getByRole('switch',{name:'Altezza automatica'}).uncheck();await p.getByText('Preferenze salvate.',{exact:true}).waitFor();
-  await p.getByLabel('Spaziatura tabelle').selectOption('standard');await p.waitForFunction(()=>!document.querySelector('.profile-grid-preferences').disabled);
+  await p.getByLabel('Spaziatura tabelle').selectOption('standard');await p.waitForFunction(()=>!document.querySelector('.profile-preferences').disabled);
   await go('gare','Gare');await p.locator('#races-grid .ag-row').first().waitFor();
   const standardHeight=await p.locator('#races-grid .ag-row').first().evaluate(e=>e.getBoundingClientRect().height);
   check(standardHeight>compactHeight,'compact spacing reduces row height');

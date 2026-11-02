@@ -152,6 +152,24 @@ final class FR_Auth {
         return $this->payload($user, (int) $user['expires_at'], $this->token());
     }
 
+    public function change_password(WP_REST_Request $request) {
+        global $wpdb;$session=$this->current();
+        if(!$session)return new WP_Error('fr_unauthorized','Accedi per continuare.',['status'=>401]);
+        $id=(int)$session['id'];$key='fr_password_attempts_'.$id;
+        if((int)get_transient($key)>=5)return new WP_Error('fr_password_limited','Troppi tentativi. Riprova tra 15 minuti.',['status'=>429]);
+        $input=$request->get_json_params()??[];$current=$input['current_password']??null;$next=$input['new_password']??null;$confirm=$input['confirm_password']??null;
+        if(!is_string($current)||strlen($current)>4096||!is_string($next)||strlen($next)<12||strlen($next)>4096||$next!==$confirm)return new WP_Error('fr_password_invalid','La nuova password deve avere da 12 a 4096 caratteri e coincidere con la conferma.',['status'=>422]);
+        $user=$this->repository->user($id);
+        if(!$user||!wp_check_password($current,$user['password_hash'])){set_transient($key,(int)get_transient($key)+1,15*MINUTE_IN_SECONDS);return new WP_Error('fr_password_current','Password attuale non corretta.',['status'=>422]);}
+        if(wp_check_password($next,$user['password_hash']))return new WP_Error('fr_password_same','Scegli una password diversa da quella attuale.',['status'=>422]);
+        if($wpdb->query('START TRANSACTION')===false)return new WP_Error('fr_password_failed','Salvataggio non riuscito.',['status'=>500]);
+        try{
+            if($wpdb->update(FR_Repository::users_table(),['password_hash'=>wp_hash_password($next)],['id'=>$id,'password_hash'=>$user['password_hash']])!==1)throw new RuntimeException('Account modificato: accedi nuovamente e riprova.');
+            if($wpdb->delete(FR_Repository::sessions_table(),['user_id'=>$id])===false||$wpdb->query('COMMIT')===false)throw new RuntimeException('Salvataggio non riuscito.');
+        }catch(Throwable $e){$wpdb->query('ROLLBACK');return new WP_Error('fr_password_failed',$e->getMessage(),['status'=>422]);}
+        delete_transient($key);$this->cookie('',time()-DAY_IN_SECONDS);return ['success'=>true];
+    }
+
     public function logout(): array {
         $this->repository->delete_session($this->token());
         $this->cookie('', time() - DAY_IN_SECONDS);

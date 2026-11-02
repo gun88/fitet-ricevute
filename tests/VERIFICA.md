@@ -439,3 +439,7 @@ Select comitati: tests/committees.php verifica 22 ID nella mappa pubblica e rifi
 ### Icone Lucide
 
 `tests/lucide-ui.cjs`: 14 controlli browser superati su menu avanzato, filtri e paginazione AG Grid, profilo/logout, meno bozza, matita e apertura editor note, colori azioni, stampa con nome accessibile, intestazione quota modificabile, hamburger/logout mobile, azzera ricerca, assenza errori e assenza richieste esterne per le icone. Controllo visivo della pagina Gare mobile. Compilazione solamente nell’installazione isolata; build del sito invariata.
+
+### Profilo, password e riepilogo rimborsi
+
+`tests/profile-password.php`: 12 controlli con account temporaneo su password attuale, conferma, lunghezza minima, modifica effettiva, revoca di tutte le sessioni, isolamento degli altri utenti e protezione CSRF. `tests/profile-layout-ui.cjs`: 18 controlli browser su layout gara 40/20/20/20, intestazione compatta, cestino con bordo, aggiunta iscrizione centrata, assenza Annulla, profilo responsive, switch, errori password e ritorno al login con conferma, riepilogo AG Grid/card con ricerca e nome operatore nello storico. `tests/refund-revision.php`: 20 controlli, incluso salvataggio dei nomi operatore. Compilazione e screenshot solo nella copia isolata; assets del sito invariati.

@@ -1,3 +1,4 @@
+import { Router } from '@angular/router';
 import { IconComponent } from './icon.component';
 import { FormsModule } from '@angular/forms';
 import { errorMessage, GridPreferences } from './auth.service';
@@ -5,21 +6,15 @@ import { Component, inject, signal } from '@angular/core';
 import { DashboardComponent } from './dashboard.component';
 @Component({selector:'fr-user',imports:[IconComponent,FormsModule],template:`
  <div class="page-heading"><div><h1>Profilo utente</h1><p class="dashboard-subtitle">Le informazioni del tuo account.</p></div></div>
- <section class="profile-card" aria-label="Informazioni utente">
-  <dl class="detail-summary"><dt>Nome utente</dt><dd>{{dashboard.auth.user()?.display_name}}</dd><dt>Username di accesso</dt><dd>{{dashboard.auth.user()?.username}}</dd></dl>
-  <fieldset class="profile-grid-preferences" [disabled]="saving()">
-   <legend>Preferenze personali</legend>
-   <label>Modalità rimborso predefinita <select aria-label="Modalità rimborso predefinita" [ngModel]="dashboard.auth.gridPreferences().payment_method||'transfer'" (ngModelChange)="save({payment_method:$event})"><option value="transfer">Bonifico</option><option value="cash">Contanti</option></select></label>
-   <label class="check-field"><input type="checkbox" role="switch" [checked]="dashboard.auth.gridPreferences().auto_height" (change)="save({auto_height:$any($event.target).checked})">Altezza automatica</label>
-   <p class="grid-help">Adatta la tabella alle righe della pagina. Disattiva per usare lo scorrimento interno.</p>
-   <label>Spaziatura <select aria-label="Spaziatura tabelle" [ngModel]="dashboard.auth.gridPreferences().density" (ngModelChange)="save({density:$event})"><option value="standard">Standard</option><option value="compact">Compatta</option></select></label>
-   <p class="grid-help">Preferenze personali salvate sul tuo account, valide per tutte le tabelle desktop.</p>
-   <p role="status">{{saving()?'Salvataggio…':message()}}</p>
-  </fieldset>
-  <button type="button" class="secondary-button profile-logout" [disabled]="dashboard.data.locked()" (click)="dashboard.logout()"><fr-icon name="logout" />Log out</button>
- </section>
+ <div class="profile-layout">
+ <section class="profile-section profile-account" aria-label="Informazioni utente"><h2>Account</h2><dl><dt>Nome utente</dt><dd>{{dashboard.auth.user()?.display_name}}</dd><dt>Username di accesso</dt><dd>{{dashboard.auth.user()?.username}}</dd></dl><button type="button" class="secondary-button profile-logout" [disabled]="dashboard.data.locked()||changingPassword()" (click)="dashboard.logout()"><fr-icon name="logout" />Log out</button></section>
+ <section class="profile-section profile-settings"><h2>Preferenze personali</h2><fieldset class="profile-preferences" [disabled]="saving()||changingPassword()"><label>Modalità rimborso predefinita<select aria-label="Modalità rimborso predefinita" [ngModel]="dashboard.auth.gridPreferences().payment_method||'transfer'" (ngModelChange)="save({payment_method:$event})"><option value="transfer">Bonifico</option><option value="cash">Contanti</option></select></label><label>Spaziatura tabelle<select aria-label="Spaziatura tabelle" [ngModel]="dashboard.auth.gridPreferences().density" (ngModelChange)="save({density:$event})"><option value="standard">Standard</option><option value="compact">Compatta</option></select></label><div class="profile-switch"><label class="check-field"><input type="checkbox" role="switch" [checked]="dashboard.auth.gridPreferences().auto_height" (change)="save({auto_height:$any($event.target).checked})">Altezza automatica</label><p class="grid-help">Adatta le tabelle desktop alle righe visualizzate. Disattiva per usare lo scorrimento interno.</p></div><p class="grid-help">Le preferenze si salvano automaticamente sul tuo account.</p><p role="status">{{saving()?'Salvataggio…':message()}}</p></fieldset></section>
+ <section class="profile-section profile-password"><h2>Cambia password</h2><p class="grid-help">Inserisci la password attuale e una nuova di almeno 12 caratteri. Dopo il cambio dovrai accedere nuovamente; saranno chiuse anche le altre sessioni del tuo account.</p><form (ngSubmit)="changePassword()"><fieldset [disabled]="changingPassword()||saving()"><label>Password attuale<input name="currentPassword" type="password" [(ngModel)]="currentPassword" autocomplete="current-password" maxlength="4096" required></label><label>Nuova password<input name="newPassword" type="password" [(ngModel)]="newPassword" autocomplete="new-password" minlength="12" maxlength="4096" required></label><label>Conferma nuova password<input name="repeatPassword" type="password" [(ngModel)]="repeatPassword" autocomplete="new-password" minlength="12" maxlength="4096" required></label>@if(passwordError()){<p class="error-box" role="alert">{{passwordError()}}</p>}<button class="sync-button" type="submit" [disabled]="!currentPassword||newPassword.length<12||!repeatPassword">{{changingPassword()?'Salvataggio…':'Aggiorna password'}}</button></fieldset></form></section>
+ </div>
 `})
 export class UserComponent {
+ readonly router=inject(Router);readonly changingPassword=signal(false);readonly passwordError=signal('');currentPassword='';newPassword='';repeatPassword='';
+ async changePassword(){if(this.changingPassword())return;this.passwordError.set('');if(this.newPassword!==this.repeatPassword){this.passwordError.set('La conferma non coincide con la nuova password.');return;}this.changingPassword.set(true);try{const id=this.dashboard.auth.user()?.id;await this.dashboard.auth.changePassword(this.currentPassword,this.newPassword,this.repeatPassword);this.currentPassword=this.newPassword=this.repeatPassword='';this.dashboard.data.clear(id);this.dashboard.portal.clear();await this.router.navigateByUrl('/login?passwordChanged=1');}catch(error){this.passwordError.set(errorMessage(error));}finally{this.changingPassword.set(false);}}
  readonly dashboard=inject(DashboardComponent);readonly saving=signal(false);readonly message=signal('');
  async save(change:Partial<GridPreferences>){this.saving.set(true);this.message.set('');try{await this.dashboard.auth.saveGridPreferences({...this.dashboard.auth.gridPreferences(),...change});this.message.set('Preferenze salvate.');}catch(error){this.message.set(errorMessage(error));}finally{this.saving.set(false);}}
 }

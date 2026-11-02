@@ -27,6 +27,7 @@
       } @else if (!settings()?.enabled) {
         <p role="status" class="notice">Il portale è temporaneamente disabilitato. Riprova più tardi.</p>
       } @else {
+        @if (passwordChanged) { <p role="status" class="notice">Password aggiornata. Accedi con la nuova password.</p> }
         <form #loginForm="ngForm" (ngSubmit)="submit()">
           <label for="username">Username</label>
           <input id="username" name="username" type="text" [(ngModel)]="username" required maxlength="60" autocomplete="username" autocapitalize="none" spellcheck="false" [disabled]="submitting()" placeholder="Il tuo username">

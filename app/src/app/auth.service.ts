@@ -46,6 +46,7 @@ export class AuthService {
     this.clear();
   }
 
+  async changePassword(current_password:string,new_password:string,confirm_password:string):Promise<void>{await firstValueFrom(this.http.post(apiUrl('auth/password'),{current_password,new_password,confirm_password}));this.clear();}
   clear(): void { this.session.set(null); }
 }
 

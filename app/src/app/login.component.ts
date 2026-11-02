@@ -17,6 +17,7 @@ export class LoginComponent implements OnInit {
   readonly submitting = signal(false);
   readonly error = signal('');
   readonly showPassword = signal(false);
+  readonly passwordChanged = this.route.snapshot.queryParamMap.has('passwordChanged');
   username = '';
   password = '';
   remember = false;

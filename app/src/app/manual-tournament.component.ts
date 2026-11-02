@@ -1,3 +1,4 @@
+import { IconComponent } from './icon.component';
 import { config } from './config';
 import { Entry, Race, importManualJson, importManualExcel } from './manual-tournament-import';
 import { Component, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
@@ -5,7 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { PortalService } from './portal.service';
 import { AuthService, errorMessage } from './auth.service';
-@Component({selector:'fr-manual-tournament',imports:[FormsModule,RouterLink],template:`
+@Component({selector:'fr-manual-tournament',imports:[IconComponent,FormsModule],template:`
  <div class="page-heading"><h1>Aggiungi torneo</h1></div>
  <p class="notice">Attenzione: usa questa funzione solo per tornei non presenti nell’extranet, ad esempio provinciali. Non aggiungere tornei già disponibili o che dovrebbero comparire sul portale FITeT: verifica prima l’extranet per evitare duplicati.</p>
  <section class="manual-import-section" aria-label="Importa dati torneo"><div class="manual-import-actions">
@@ -22,14 +23,14 @@ import { AuthService, errorMessage } from './auth.service';
  <section class="refund-settings"><label>Nome torneo<input name="name" [(ngModel)]="name" maxlength="500" required></label><label>Data<input name="date" type="date" [(ngModel)]="date" required></label><label>Località<input name="place" [(ngModel)]="place" maxlength="255" required></label><label>Comitato<select aria-label="Comitato" name="committee" [ngModel]="committee" (ngModelChange)="setCommittee($event)" required><option value="" disabled>— Seleziona comitato —</option>@if(committee&&!selectedCommittee){<option [value]="committee" disabled>Comitato {{committee}} non riconosciuto</option>}@for(item of committees();track item.id){<option [value]="item.id">{{item.name}} ({{item.id}})</option>}</select></label><label>Totale ricevuta (€)<input name="total" type="number" step="0.01" min="0" [(ngModel)]="total" required></label>
  <label>Ricevuta obbligatoria (PDF, PNG o JPG; max {{receiptLimit}} KB)<input #receiptUpload type="file" accept="application/pdf,image/png,image/jpeg" (change)="receipt=$any($event.target).files[0]" required></label><label>Locandina facoltativa (PDF, PNG o JPG; max {{posterLimit}} KB)<input #posterUpload type="file" accept="application/pdf,image/png,image/jpeg" (change)="poster=$any($event.target).files[0]"></label></section>
  <datalist id="manual-athletes">@for(p of people();track p.card){<option [value]="p.name+' ('+p.card+')'"></option>}</datalist>
- @for(race of races;track $index;let ri=$index){<section class="refund-settings"><h2 class="wide-field">Gara {{ri+1}}</h2><label>Nome gara<input [name]="'race'+ri" [(ngModel)]="race.name" maxlength="500" required></label><label>Tipo<select [name]="'kind'+ri" [(ngModel)]="race.kind"><option value="single">Singolo</option><option value="double">Doppio</option></select></label><label>Quota (€)<input [name]="'price'+ri" type="number" step="0.01" min="0" [(ngModel)]="race.euros" required></label><button class="text-button" type="button" (click)="races.splice(ri,1)">Rimuovi gara</button>
+ @for(race of races;track $index;let ri=$index){<section class="refund-settings manual-race-card"><h2 class="wide-field">Gara {{ri+1}}</h2><div class="manual-race-fields wide-field"><label>Nome gara<input [name]="'race'+ri" [(ngModel)]="race.name" maxlength="500" required></label><label>Tipo<select [name]="'kind'+ri" [(ngModel)]="race.kind"><option value="single">Singolo</option><option value="double">Doppio</option></select></label><label>Quota (€)<input [name]="'price'+ri" type="number" step="0.01" min="0" [(ngModel)]="race.euros" required></label><button class="secondary-button remove-race-button" type="button" (click)="races.splice(ri,1)"><fr-icon name="trash" />Rimuovi gara</button></div>
  @for(entry of race.entries;track $index;let ei=$index){<div class="manual-entry wide-field"><label>Atleta<input list="manual-athletes" [name]="'name'+ri+'-'+ei" [(ngModel)]="entry.name1" (change)="suggest(entry,1)" maxlength="255" required></label><label>Tessera<input [name]="'card'+ri+'-'+ei" [(ngModel)]="entry.card1" pattern="[0-9]+" maxlength="32" required></label>@if(race.kind==='double'){<label>Secondo atleta<input list="manual-athletes" [name]="'name2'+ri+'-'+ei" [(ngModel)]="entry.name2" (change)="suggest(entry,2)" maxlength="255" required></label><label>Tessera secondo atleta<input [name]="'card2'+ri+'-'+ei" [(ngModel)]="entry.card2" pattern="[0-9]+" maxlength="32" required></label>}<button class="text-button" type="button" (click)="race.entries.splice(ei,1)">Rimuovi iscrizione</button></div>}
- <button class="secondary-button" type="button" (click)="addEntry(race)">Aggiungi iscrizione</button></section>}
+ <div class="manual-entry-add wide-field"><button class="secondary-button" type="button" (click)="addEntry(race)">Aggiungi iscrizione</button></div></section>}
  <button class="secondary-button" type="button" (click)="addRace()">Aggiungi gara</button>
  <p><label class="check-field"><input type="checkbox" name="confirmed" [(ngModel)]="confirmed" required>Ho verificato che questo torneo non sia già disponibile o atteso nell’extranet.</label></p>
  <p class="grid-help">Le immagini sono convertite in PDF dal browser. Il limite si applica anche al PDF finale archiviato.</p>
  @if(error()){<p class="error-box" role="alert">{{error()}}</p>}
- <button class="sync-button" type="submit" [disabled]="!races.length||!confirmed||!receipt||!selectedCommittee">{{busy()?'Salvataggio…':'Salva torneo'}}</button> <a routerLink="/tornei">Annulla</a>
+ <button class="sync-button" type="submit" [disabled]="!races.length||!confirmed||!receipt||!selectedCommittee">{{busy()?'Salvataggio…':'Salva torneo'}}</button>
  </fieldset></form>
 `})
 export class ManualTournamentComponent {

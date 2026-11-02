@@ -54,17 +54,20 @@ final class FR_Refund_Workflow {
         if(!$row)throw new RuntimeException('Riga della bozza non disponibile.');
         $this->checked($wpdb->update($table,['notes'=>sanitize_textarea_field($input['notes'])],['user_id'=>$user,'society_code'=>$society,'entry_id'=>$id]));return $this->cart($user);
     }
+    private array $operatorNames=[];
+    private function operator_name(int $id):string {if(!isset($this->operatorNames[$id])){$user=(new FR_Repository())->user($id);$this->operatorNames[$id]=$user?($user['display_name']?:$user['username']):'Operatore non disponibile';}return $this->operatorNames[$id];}
     private function decode(array $row): array {
         $row['id']=(int)$row['id'];$row['user_id']=(int)$row['user_id'];$row['total_cents']=(int)$row['total_cents'];
         $row['created_at']=str_replace(' ','T',$row['created_at']).'Z';
         $row['items']=json_decode($row['items_json'],true);$row['options']=json_decode($row['options_json'],true);
         $sanitize=function(array &$options)use(&$sanitize){if(isset($options['original_receipts']))foreach($options['original_receipts'] as &$doc)unset($doc['file']);unset($doc);if(isset($options['history']))foreach($options['history'] as &$version)if(isset($version['options']))$sanitize($version['options']);};$sanitize($row['options']);
+        $row['user_name']=$this->operator_name($row['user_id']);if(isset($row['options']['updated_by']))$row['options']['updated_by_name']??=$this->operator_name((int)$row['options']['updated_by']);if(isset($row['options']['history']))foreach($row['options']['history'] as &$version)$version['replaced_by_name']??=$this->operator_name((int)($version['replaced_by']??0));unset($version);
         unset($row['items_json'],$row['options_json'],$row['request_key']);return $row;
     }
     public function emissions(int $page): array {
         global $wpdb;$table=$this->table('emissioni');$society=$this->society();
         $rows=$wpdb->get_results($wpdb->prepare("SELECT * FROM $table WHERE society_code=%s ORDER BY id DESC LIMIT 50 OFFSET %d",$society,(max(1,$page)-1)*50),ARRAY_A);
-        return ['items'=>array_map(function($row){$value=$this->decode($row);if(isset($value['options']['history']))$value['options']['history']=array_map(fn($h)=>array_intersect_key($h,array_flip(['revision','total_cents','replaced_at','replaced_by'])),$value['options']['history']);foreach(['signature','stamp'] as $image)if(isset($value['options'][$image]['data_url']))unset($value['options'][$image]['data_url']);return $value;},$rows),'total'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE society_code=%s",$society)),'page'=>$page,'per_page'=>50];
+        return ['items'=>array_map(function($row){$value=$this->decode($row);if(isset($value['options']['history']))$value['options']['history']=array_map(fn($h)=>array_intersect_key($h,array_flip(['revision','total_cents','replaced_at','replaced_by','replaced_by_name'])),$value['options']['history']);foreach(['signature','stamp'] as $image)if(isset($value['options'][$image]['data_url']))unset($value['options'][$image]['data_url']);return $value;},$rows),'total'=>(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE society_code=%s",$society)),'page'=>$page,'per_page'=>50];
     }
     public function emission(int $id): array {
         global $wpdb;$table=$this->table('emissioni');
@@ -104,9 +107,9 @@ final class FR_Refund_Workflow {
                 $options['issuer']=$oldOptions['issuer'];$options['signature']=$oldOptions['signature']??null;$options['stamp']=$oldOptions['stamp']??null;$options['format']='total';
                 $newRows=array_values(array_filter($rows,fn($r)=>!isset($oldMap[(int)$r['id']])));$newDocs=FR_Refund_Documents::capture($newRows,$society);$newMap=[];foreach($newRows as $row)$newMap[$row['id']]=$row['receipt_id'];foreach($rows as &$row)if(isset($newMap[$row['id']]))$row['receipt_id']=$newMap[$row['id']];unset($row);
                 $bundle=FR_Refund_Documents::bundle($oldRows,$oldOptions,$society);$wanted=array_column($rows,'receipt_id');$docs=[];foreach(array_merge($bundle['documents'],$newDocs) as $doc)if(in_array($doc['id'],$wanted,true))$docs[$doc['id']]=$doc;$options['original_receipts']=array_values($docs);
-                $options['revision']=$revision+1;$options['updated_at']=gmdate(DATE_ATOM);$options['updated_by']=$user;
+                $options['revision']=$revision+1;$options['updated_at']=gmdate(DATE_ATOM);$options['updated_by']=$user;$options['updated_by_name']=$this->operator_name($user);
                 // Keep previous versions as complete immutable snapshots, without recursive history.
-                $history=$oldOptions['history']??[];unset($oldOptions['history']);$history[]=['revision'=>$revision,'items'=>$oldRows,'options'=>$oldOptions,'total_cents'=>(int)$raw['total_cents'],'replaced_at'=>gmdate(DATE_ATOM),'replaced_by'=>$user];$options['history']=$history;
+                $history=$oldOptions['history']??[];unset($oldOptions['history']);$history[]=['revision'=>$revision,'items'=>$oldRows,'options'=>$oldOptions,'total_cents'=>(int)$raw['total_cents'],'replaced_at'=>gmdate(DATE_ATOM),'replaced_by'=>$user,'replaced_by_name'=>$this->operator_name($user)];$options['history']=$history;
                 $total=FR_Refund_Amounts::calculate($rows,$options);$now=current_time('mysql',true);
                 foreach($oldMap as $entryId=>$row)if(!in_array($entryId,$ids,true))$this->checked($wpdb->update($paid,['reimbursed'=>0,'paid_cents'=>null,'updated_at'=>$now,'updated_by'=>$user],['entry_id'=>$entryId]));
                 foreach($rows as &$row){$amount=(int)($row['paid_cents']??$row['price_cents']);$record=['reimbursed'=>1,'paid_cents'=>$amount,'updated_at'=>$now,'updated_by'=>$user];$exists=$wpdb->get_var($wpdb->prepare("SELECT entry_id FROM $paid WHERE entry_id=%d",$row['id']));if($exists)$this->checked($wpdb->update($paid,$record,['entry_id'=>$row['id']]));else $this->checked($wpdb->insert($paid,['entry_id'=>$row['id']]+$record));$row['paid_cents']=$amount;$row['reimbursed']=1;}unset($row);

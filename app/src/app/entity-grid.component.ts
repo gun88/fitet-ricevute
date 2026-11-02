@@ -37,10 +37,10 @@ export class CartActionComponent {
  @if(kind==='entries' && !cartMode && !responsive.mobile()){<button class="secondary-button" [disabled]="!selected().length || portal.data.locked()" (click)="addSelected()">Aggiungi selezionate ({{selected().length}})</button>}</div>}</div>
  @if(responsive.mobile()){
  <fr-mobile-list [rows]="rows" [search]="view.search()" [text]="cardText" [sort]="cardSort" [label]="label">
- <ng-template let-row><article class="mobile-card">
+ <ng-template let-row><article class="mobile-card" [class.fr-invalid-refund-row]="invalidDraftRow(row)">
  <div class="card-heading"><h3>@for(link of cardTitleLinks(row);track $index){@if($index){ / }<a [routerLink]="link.url" [attr.aria-label]="link.label">@if(link.icon){<fr-icon [name]="link.icon" />}@else{ {{link.label}} }</a>}</h3><span class="card-amount">{{kind==='emissions'?money(row.total_cents):kind==='entries'||kind==='races'?money(row.price_cents):row.entry_count+' iscrizioni'}}</span></div>
  <p class="card-subtitle">{{kind==='emissions'?timestamp(row.created_at):dateLabel(row.tournament_date)}} @if(row.tournament_place){ · {{row.tournament_place}}}</p>
- @if(kind==='entries'){<p class="card-context">{{row.tournament_name}} · {{row.race_name}}</p><span class="card-status">{{portal.state(row)}}</span>}
+ @if(kind==='entries'){<p class="card-context">{{row.tournament_name}} · {{row.race_name}}</p>@if(!cartMode){<span class="card-status">{{portal.state(row)}}</span>}@if(invalidDraftRow(row)){<p class="error-box" role="alert">{{invalidDraftReason(row)}}</p>}}
  @if(kind==='tournaments'||kind==='races'){<span class="card-status">Rimborsi: {{portal.refundStats(row.tournament_key,kind==='races'?Number(row.race_id||row.id):undefined).count}}</span>}
  @if(kind==='races'){<p class="card-context">{{row.tournament_name}}</p>}
  <details [open]="expanded().has(row.id)"><summary (click)="$event.preventDefault();toggleCard(row.id)"><fr-icon class="disclosure-icon" name="chevron-right" [size]="16" />Informazioni e dettagli</summary><dl class="card-fields">
@@ -52,10 +52,13 @@ export class CartActionComponent {
  <div class="card-actions">@if(kind==='tournaments'&&row.poster_url){<a [href]="row.poster_url" target="_blank" rel="noopener noreferrer">Visualizza locandina</a>}@for(link of cardActions(row);track link.label){<a [routerLink]="link.url" [queryParams]="link.query" [attr.aria-label]="link.label">@if(link.icon){<fr-icon [name]="link.icon" />}@else{ {{link.label}} }</a>}
  @if(kind==='entries'){<button class="secondary-button" [disabled]="portal.data.locked()||(!cartMode&&(row.reimbursed||row.stale||(!onAdd&&portal.cartIds().has(row.id))))" (click)="onAdd?onAdd(row):cartMode&&onRemove?onRemove(row):portal.changeCart([row],!cartMode)">@if(onAdd){<fr-icon name="plus" />}{{onAdd?'Aggiungi al rimborso':cartMode?'Rimuovi':portal.cartIds().has(row.id)?'In bozza rimborso':'Metti in bozza'}}</button>}
  </div></article></ng-template></fr-mobile-list>
- }@else{ @if(view){<ag-grid-angular [id]="viewKey+'-grid'" class="main-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="rows" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [frGridSizing]="view" [initialState]="view.initialState" (stateUpdated)="stateUpdated($event)" (gridReady)="ready($event.api)" (firstDataRendered)="restoreFilters($event.api)" [rowSelection]="selection" [selectionColumnDef]="selectionColumn" (selectionChanged)="selected.set($event.api.getSelectedRows())" [readOnlyEdit]="true" [singleClickEdit]="true" [stopEditingWhenCellsLoseFocus]="true" (cellEditRequest)="edit($event)" />}
+ }@else{ @if(view){<ag-grid-angular [id]="viewKey+'-grid'" class="main-grid" [theme]="presentation.theme()" [domLayout]="presentation.layout()" [class.auto-height]="presentation.autoHeight()" [rowData]="rows" [rowClassRules]="rowClasses" [columnDefs]="columns" [defaultColDef]="defaults" [getRowId]="rowId" [pagination]="true" [paginationPageSize]="100" [paginationPageSizeSelector]="[25,50,100]" [quickFilterText]="view.search()" [frGridSizing]="view" [initialState]="view.initialState" (stateUpdated)="stateUpdated($event)" (gridReady)="ready($event.api)" (firstDataRendered)="restoreFilters($event.api)" [rowSelection]="selection" [selectionColumnDef]="selectionColumn" (selectionChanged)="selected.set($event.api.getSelectedRows())" [readOnlyEdit]="true" [singleClickEdit]="true" [stopEditingWhenCellsLoseFocus]="true" (cellEditRequest)="edit($event)" />}
  }
 `})
 export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
+ invalidDraftRow(row:any){return this.cartMode&&!!row&&(!!row.stale||(!this.onRemove&&!!row.reimbursed)||row.price_cents==null);}
+ invalidDraftReason(row:any){return row.stale?'Iscrizione non più disponibile: rimuovila dalla bozza.':row.reimbursed&&!this.onRemove?'Quota già rimborsata: rimuovila dalla bozza.':'Quota senza prezzo: definiscilo prima di emettere il rimborso.';}
+ readonly rowClasses={'fr-invalid-refund-row':(p:any)=>this.invalidDraftRow(p.data)};
  readonly presentation=inject(GridPresentation);
  @Input() onAdd?: (row:any)=>void;@Input() onRemove?: (row:any)=>void;@Input() onNote?: (row:any,notes:string)=>void;
  @Input() rows:any[]=[];@Input() kind:'tournaments'|'races'|'entries'|'emissions'='entries';@Input() viewKey='entries';@Input() label='iscrizioni';@Input() cartMode=false;
@@ -111,9 +114,10 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
     
     {field:'price_cents',headerName:'Quota',valueFormatter:p=>money(p.value==null?null:Number(p.value))},
     {colId:'status',headerName:'Stato quota',valueGetter:p=>this.portal.state(p.data)},
-    {colId:'tournament_refund_count',headerName:'Rimborsi torneo',filter:'agNumberColumnFilter',valueGetter:p=>this.portal.refundStats(p.data.tournament_key).count},
     {field:'refund_notes',headerName:'Note riga',width:270,editable:()=>this.cartMode&&!this.portal.data.locked(),cellEditor:'agLargeTextCellEditor',cellEditorPopup:true,cellEditorParams:{maxLength:1000},wrapText:true,autoHeight:true},
     {field:'paid_cents',headerName:'Rimborsato',valueFormatter:p=>money(p.value==null?null:Number(p.value))}];
+   if(!this.cartMode)this.columns=this.columns.filter(col=>col.field!=='refund_notes');
+   if(this.cartMode)this.columns=this.columns.filter(col=>!['status','tournament_refund_count'].includes(col.colId||'')&&col.field!=='paid_cents');
   }
   if(this.kind==='emissions')this.columns=[this.link('id','Rimborso',r=>[{label:'Rimborso #'+r.id,url:'/rimborsi/'+r.id}],180),{field:'created_at',headerName:'Data e ora emissione',width:240,sort:'desc',valueFormatter:p=>new Date(p.value).toLocaleString('it-IT')},{field:'total_cents',headerName:'Importo emesso',valueFormatter:p=>money(Number(p.value))},{colId:'count',headerName:'Iscrizioni',valueGetter:p=>p.data.items.length},{...this.link('actions','Ricevute',r=>[{label:'Stampa ricevute',icon:'printer',url:'/rimborsi/'+r.id}],100),pinned:null}];
  }
