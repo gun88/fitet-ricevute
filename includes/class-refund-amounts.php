@@ -6,15 +6,15 @@ final class FR_Refund_Amounts {
         if(!in_array($payment,['transfer','cash'],true))throw new RuntimeException('Modalità di pagamento non valida.');
         $options['payment_method']=$payment;$people=[];
         $modes=$options['line_modes']??[];if(!is_array($modes)||count($modes)>1000)throw new RuntimeException('Trattamento quote non valido.');$selected=array_map('strval',array_column($rows,'id'));$options['line_modes']=array_intersect_key($modes,array_flip($selected));
-        foreach($options['line_modes'] as $mode)if(!in_array($mode,['reimburse','deduct'],true))throw new RuntimeException('Trattamento quote non valido.');
+        foreach($options['line_modes'] as $mode)if(!in_array($mode,['reimburse','deduct','paid'],true))throw new RuntimeException('Trattamento quote non valido.');
         foreach($rows as $row){
             $amount=(int)($row['paid_cents']??$row['price_cents']);$double=!empty($row['athlete2_name']);$allocation=$options['allocation'];
             $mode=$options['line_modes'][(string)$row['id']]??'reimburse';
-            if(!in_array($mode,['reimburse','deduct'],true))throw new RuntimeException('Trattamento quota non valido.');
+            if(!in_array($mode,['reimburse','deduct','paid'],true))throw new RuntimeException('Trattamento quota non valido.');
             $shares=$double?($allocation==='first'?[$amount,0]:($allocation==='second'?[0,$amount]:[(int)ceil($amount/2),(int)floor($amount/2)])):[$amount,0];
             foreach([1,2] as $i){if(empty($row['athlete'.$i.'_name'])||($double&&(($allocation==='first'&&$i===2)||($allocation==='second'&&$i===1))))continue;
                 $card=$row['athlete'.$i.'_card']??'';$name=$row['athlete'.$i.'_name'];$key=$card?'card:'.$card:'name:'.mb_strtoupper(trim($name));
-                $people[$key]??=['name'=>$name,'card'=>$card?:'—','cents'=>0];$people[$key]['cents']+=$shares[$i-1]*($mode==='deduct'?-1:1);
+                $people[$key]??=['name'=>$name,'card'=>$card?:'—','cents'=>0];$people[$key]['cents']+=$shares[$i-1]*($mode==='paid'?0:($mode==='deduct'?-1:1));
             }
         }
         $adjustments=$options['adjustments']??[];

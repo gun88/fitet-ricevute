@@ -48,7 +48,7 @@ final class FR_Development_Reset {
             update_option('fitet_ricevute_data_generation', bin2hex(random_bytes(16)), false);
             $keys = $wpdb->get_col("SELECT option_name FROM $wpdb->options");
             foreach ($keys as $key) {
-                if (preg_match('/^fr_last_sync_[a-f0-9]{64}$/D', $key)) delete_option($key);
+                if (preg_match('/^fr_(?:last_sync|draft_options)_[a-f0-9]{64}$/D', $key)) delete_option($key);
                 if (preg_match('/^_transient_(?:timeout_)?(fr_sync_[a-f0-9]{32})$/D', $key, $match)) delete_transient($match[1]);
             }
             $remaining = 0;

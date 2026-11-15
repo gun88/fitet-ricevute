@@ -1,3 +1,4 @@
+import { refundStatistics } from './refund-statistics';
 import { EditableHeaderComponent } from './editable-header.component';
 import { IconComponent } from './icon.component';
 import { GridSizingDirective } from './grid-sizing.directive';
@@ -40,7 +41,7 @@ export class CartActionComponent {
  <ng-template let-row><article class="mobile-card" [class.fr-invalid-refund-row]="invalidDraftRow(row)">
  <div class="card-heading"><h3>@for(link of cardTitleLinks(row);track $index){@if($index){ / }<a [routerLink]="link.url" [attr.aria-label]="link.label">@if(link.icon){<fr-icon [name]="link.icon" />}@else{ {{link.label}} }</a>}</h3><span class="card-amount">{{kind==='emissions'?money(row.total_cents):kind==='entries'||kind==='races'?money(row.price_cents):row.entry_count+' iscrizioni'}}</span></div>
  <p class="card-subtitle">{{kind==='emissions'?timestamp(row.created_at):dateLabel(row.tournament_date)}} @if(row.tournament_place){ · {{row.tournament_place}}}</p>
- @if(kind==='entries'){<p class="card-context">{{row.tournament_name}} · {{row.race_name}}</p>@if(!cartMode){<span class="card-status">{{portal.state(row)}}</span>}@if(invalidDraftRow(row)){<p class="error-box" role="alert">{{invalidDraftReason(row)}}</p>}}
+ @if(kind==='entries'){<p class="card-context">{{row.tournament_name}} · {{row.race_name}}</p>@if(!cartMode){<span class="card-status">{{portal.state(row)}}</span>}}
  @if(kind==='tournaments'||kind==='races'){<span class="card-status">Rimborsi: {{portal.refundStats(row.tournament_key,kind==='races'?Number(row.race_id||row.id):undefined).count}}</span>}
  @if(kind==='races'){<p class="card-context">{{row.tournament_name}}</p>}
  <details [open]="expanded().has(row.id)"><summary (click)="$event.preventDefault();toggleCard(row.id)"><fr-icon class="disclosure-icon" name="chevron-right" [size]="16" />Informazioni e dettagli</summary><dl class="card-fields">
@@ -88,7 +89,7 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
  ngOnDestroy(){this.unwatch();}
  view!:TableView;api?:GridApi;columns:ColDef<any>[]=[];selection:any;
  restoreFilters(api:GridApi){if(this.view.initialState?.filter)api.setFilterModel(structuredClone(this.view.initialState.filter.filterModel||{}));}
- ready(api:GridApi){this.api=api;this.view.restore(api);if(this.kind==='emissions')api.applyColumnState({state:[{colId:'actions',pinned:null}]});}
+ ready(api:GridApi){this.api=api;this.view.restore(api);}
  stateUpdated(event:StateUpdatedEvent){if(!this.responsive.mobile())this.view.updated(event);}
 
  async addSelected(){if(this.onAdd){const rows=this.selected();for(const row of rows)this.onAdd(row);}else await this.portal.changeCart(this.selected(),true);this.api?.deselectAll();this.selected.set([]);}
@@ -119,6 +120,6 @@ export class EntityGridComponent implements OnInit, OnDestroy, OnChanges {
    if(!this.cartMode)this.columns=this.columns.filter(col=>col.field!=='refund_notes');
    if(this.cartMode)this.columns=this.columns.filter(col=>!['status','tournament_refund_count'].includes(col.colId||'')&&col.field!=='paid_cents');
   }
-  if(this.kind==='emissions')this.columns=[this.link('id','Rimborso',r=>[{label:'Rimborso #'+r.id,url:'/rimborsi/'+r.id}],180),{field:'created_at',headerName:'Data e ora emissione',width:240,sort:'desc',valueFormatter:p=>new Date(p.value).toLocaleString('it-IT')},{field:'total_cents',headerName:'Importo emesso',valueFormatter:p=>money(Number(p.value))},{colId:'count',headerName:'Iscrizioni',valueGetter:p=>p.data.items.length},{...this.link('actions','Ricevute',r=>[{label:'Stampa ricevute',icon:'printer',url:'/rimborsi/'+r.id}],100),pinned:null}];
+  if(this.kind==='emissions')this.columns=[this.link('id','Rimborso',r=>[{label:'Rimborso #'+r.id,url:'/rimborsi/'+r.id}],180),{field:'created_at',headerName:'Data e ora emissione',width:240,sort:'desc',valueFormatter:p=>new Date(p.value).toLocaleString('it-IT')},{field:'total_cents',headerName:'Importo emesso',valueFormatter:p=>money(Number(p.value))},{colId:'tournaments',headerName:'Tornei',filter:'agNumberColumnFilter',cellDataType:'number',valueGetter:p=>new Set(p.data.items.map((r:any)=>r.tournament_key)).size},{colId:'races',headerName:'Gare',filter:'agNumberColumnFilter',cellDataType:'number',valueGetter:p=>refundStatistics([p.data]).races},{colId:'players',headerName:'Giocatori',filter:'agNumberColumnFilter',cellDataType:'number',valueGetter:p=>refundStatistics([p.data]).players},{colId:'count',headerName:'Iscrizioni',filter:'agNumberColumnFilter',cellDataType:'number',valueGetter:p=>p.data.items.length}];
  }
 }

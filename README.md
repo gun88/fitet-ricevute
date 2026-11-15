@@ -1,6 +1,6 @@
 # FITET Ricevute
 
-Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **0.13.0**.
+Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **1.0.0**.
 
 ## Pagine del portale
 
@@ -318,3 +318,31 @@ Le icone dell’interfaccia e i comandi AG Grid usano il pacchetto ufficiale @lu
 ### Profilo e riepilogo rimborsi
 
 Il profilo separa account, preferenze e cambio password. Per modificare la password servono quella attuale e una nuova di almeno 12 caratteri con conferma; il salvataggio chiude tutte le sessioni dell’operatore e richiede un nuovo accesso. Lo storico delle revisioni mostra il nome dell’operatore e lo conserva nelle nuove revisioni. Il riepilogo per beneficiario nel dettaglio rimborso usa AG Grid su desktop e card con ricerca su mobile.
+
+### Bozza rimborso condivisa
+
+Le iscrizioni e le note riga della bozza sono condivise tra tutti gli operatori della società. Un refresh carica gli aggiornamenti degli altri utenti. Le bozze personali precedenti vengono lette come un unico insieme senza duplicati; per duplicati preesistenti prevalgono snapshot e note della riga aggiunta più recentemente (a parità di data, ID operatore maggiore). Rimozione ed emissione eliminano tutte le copie della quota nella società. L’operatore di emissione rimane registrato. Nessuna modifica allo schema o alla compatibilità dei backup.
+
+### Salvataggio della bozza e trattamento quote
+
+Salva bozza conserva sul server condiviso data, note generali, ripartizione doppi, modalità di pagamento per atleta, trattamento quote e rettifiche. Le modifiche degli altri operatori richiedono un refresh; un controllo di revisione impedisce di sovrascrivere una versione salvata nel frattempo. I cambi pagina interni offrono Salva ed esci, Esci senza salvare e Rimani. Refresh e chiusura della scheda usano l’avviso nativo del browser: salvare prima tramite Salva bozza. Le iscrizioni e le note riga mantengono il salvataggio immediato.
+
+Quote e rettifiche è un pannello inizialmente chiuso. Imposta contributo complessivo attribuisce lo stesso importo a ciascun beneficiario visualizzato, sostituisce i precedenti contributi complessivi e tratta le sue iscrizioni come detrazioni. Reimposta tutti elimina tutte le rettifiche e riporta tutte le quote visualizzate a Quota da rimborsare. Già pagata dalla società mantiene l’iscrizione documentata con quota da consegnare zero, senza detrazione; è distinta da Già pagata dalla società: detrai dal contributo. La scelta pagamento è disabilitata quando il saldo dell’atleta è zero. PDF/Excel conservano le quote a zero con causale e ricevuta originale.
+
+Le impostazioni condivise della bozza sono incluse nei nuovi backup; i precedenti backup restano importabili. Il reset di sviluppo cancella anche queste impostazioni. Dopo un’emissione che svuota completamente la bozza si riparte dalle impostazioni iniziali.
+
+### Eliminazione rimborso
+
+Nel dettaglio rimborso, Elimina rimborso apre una conferma esplicita. Confermare elimina emissione e storico delle sue revisioni e riapre le sole iscrizioni della versione corrente, salvo siano presenti in altre emissioni. Non aggiunge automaticamente iscrizioni alla bozza. Ricevute originali e dati dei tornei restano conservati. L’API DELETE usa autenticazione e protezione CSRF esistenti, controllo società e revisione; cancellazione e riapertura quote sono atomiche e condividono il blocco con emissione/modifica. Al termine si torna a Rimborsi Emessi con notifica overlay.
+
+### Fonte e modifica torneo personalizzato
+
+Il dettaglio torneo mostra Fonte: Autogenerato per i tornei del portale/ricevute e Personalizzato per quelli inseriti sulla piattaforma. Modifica è disponibile accanto a Personalizzato e apre il form precompilato. Ricevuta e locandina esistenti vengono mantenute se non sostituite; gare e iscrizioni mantenute conservano gli ID. Gli elementi rimossi diventano inattivi e vengono rimossi dalla bozza. La modifica è bloccata se esistono quote rimborsate o iscrizioni del torneo in un’emissione o nelle sue versioni precedenti. Il controllo è applicato nuovamente dal server, con blocco condiviso con emissione/modifica rimborsi. La conferma di non duplicare tornei extranet rimane richiesta.
+
+### Aggiornamenti tramite GitHub
+
+Il plugin include Plugin Update Checker 5.6 (MIT, licenza in includes/plugin-update-checker/license.txt), come FITET Monitor. L’endpoint pubblico è https://raw.githubusercontent.com/gun88/fitet-ricevute/refs/heads/main/release/plugin.json. L’header Update URI identifica il repository personalizzato. La libreria controlla periodicamente i metadati e integra il risultato nella pagina Plugin/Aggiornamenti di WordPress. Gli aggiornamenti automatici si abilitano tramite l’impostazione standard di WordPress; non vengono forzati dal plugin.
+
+Per una release: allineare versione PHP, package.json, lockfile e footer; aggiornare descrizione/changelog e upgrade_notice in release/plugin.json; eseguire npm run build e npm run package dalla cartella app. Il packaging verifica l’allineamento PHP/package.json e aggiorna automaticamente version, download_url e last_updated (UTC) del JSON dopo la creazione dello ZIP installabile. Pubblicare su main il JSON e release/fitet-ricevute-VERSIONE.zip insieme, oppure lo ZIP prima del JSON. Il download_url punta al file raw dello ZIP nel repository pubblico, non allo ZIP dei sorgenti. Le regole Git includono manifesto, ZIP installabili e dipendenze vendorizzate dell’updater; escludono gli ZIP -source. Per GitHub Releases si può cambiare lo schema di generazione dell’URL nel packaging.
+
+Le installazioni precedenti prive dell’updater richiedono una prima installazione manuale di questa versione; da quel momento potranno rilevare le release successive. La sola creazione del pacchetto locale non pubblica l’aggiornamento. Lo ZIP dei sorgenti include anche release/plugin.json.

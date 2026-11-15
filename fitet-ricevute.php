@@ -2,21 +2,25 @@
 /**
  * Plugin Name: FITET Ricevute
  * Description: Ricevute FITeT, dati dei tornei e degli iscritti, prezzi e rimborsi.
- * Version: 0.13.0
+ * Version: 1.0.0
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: tpomante
  * License: GPL-2.0-or-later
+ * Update URI: https://github.com/gun88/fitet-ricevute/
  * Text Domain: fitet-ricevute
  */
 
 defined('ABSPATH') || exit;
 
-define('FITET_RICEVUTE_VERSION', '0.13.0');
+define('FITET_RICEVUTE_VERSION', '1.0.0');
 define('FITET_RICEVUTE_DIR', plugin_dir_path(__FILE__));
 define('FITET_RICEVUTE_URL', plugin_dir_url(__FILE__));
 
 if (is_file(FITET_RICEVUTE_DIR . 'vendor/autoload.php')) { require_once FITET_RICEVUTE_DIR . 'vendor/autoload.php'; }
+
+require_once FITET_RICEVUTE_DIR . 'includes/class-updates.php';
+FR_Updates::init(__FILE__);
 
 require_once FITET_RICEVUTE_DIR . 'includes/class-settings.php';
 require_once FITET_RICEVUTE_DIR . 'includes/class-extranet-credentials.php';

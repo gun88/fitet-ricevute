@@ -9,9 +9,16 @@ final class FR_Refund_Workflow {
         return ltrim($code,'0')?:'0';
     }
     private function checked($result): void { if($result===false)throw new RuntimeException('Salvataggio non riuscito: nessuna emissione parziale.'); }
+    // Legacy personal drafts form a shared union. Keep one row per entry, with the
+    // most recently added snapshot/notes winning when an old entry is duplicated.
+    private function cart_records(): array {
+        global $wpdb;$table=$this->table('carrello');$society=$this->society();$unique=[];
+        foreach($wpdb->get_results($wpdb->prepare("SELECT entry_id,snapshot_json,notes FROM $table WHERE society_code=%s ORDER BY added_at,user_id,entry_id",$society),ARRAY_A) as $row)$unique[(int)$row['entry_id']]=$row;
+        return array_values($unique);
+    }
     public function cart(int $user): array {
         global $wpdb;$table=$this->table('carrello');$society=$this->society();
-        $stored=$wpdb->get_results($wpdb->prepare("SELECT entry_id,snapshot_json,notes FROM $table WHERE user_id=%d AND society_code=%s ORDER BY added_at,entry_id",$user,$society),ARRAY_A);
+        $stored=$this->cart_records();
         $items=[];$current=[];
         if($stored){
             try{foreach($this->data->refund_preview(array_map('intval',array_column($stored,'entry_id')))['items'] as $row)$current[(int)$row['id']]=$row;}
@@ -27,14 +34,14 @@ final class FR_Refund_Workflow {
     }
     public function cart_change(int $user,array $ids,bool $add): array {
         global $wpdb;$table=$this->table('carrello');$society=$this->society();
-        if(!$add){foreach($ids as $id)$this->checked($wpdb->delete($table,['user_id'=>$user,'society_code'=>$society,'entry_id'=>(int)$id]));return $this->cart($user);}
-        $cart_lock='fr_cart_lock_'.hash('sha256',$user.':'.$society);$old=get_option($cart_lock);
+        if(!$add){foreach($ids as $id)$this->checked($wpdb->delete($table,['society_code'=>$society,'entry_id'=>(int)$id]));return $this->cart($user);}
+        $cart_lock='fr_cart_lock_'.hash('sha256',$society);$old=get_option($cart_lock);
         if($old&&time()-(int)$old>120)delete_option($cart_lock);
         if(!add_option($cart_lock,time(),'',false))throw new RuntimeException('La bozza rimborso è già in aggiornamento. Riprova tra poco.');
         try {
         $rows=$this->data->refund_preview($ids)['items'];
         foreach($rows as $row)if((int)$row['reimbursed'])throw new RuntimeException('Una quota è già rimborsata. Aggiorna la selezione.');
-        $existing=$wpdb->get_col($wpdb->prepare("SELECT entry_id FROM $table WHERE user_id=%d AND society_code=%s",$user,$society));
+        $existing=$wpdb->get_col($wpdb->prepare("SELECT entry_id FROM $table WHERE society_code=%s",$society));
         if(count(array_unique(array_merge(array_map('intval',$existing),$ids)))>1000)throw new RuntimeException('La bozza rimborso può contenere al massimo 1000 quote.');
         $this->checked($wpdb->query('START TRANSACTION'));
         try{
@@ -50,9 +57,25 @@ final class FR_Refund_Workflow {
     public function update_line(int $user,int $id,array $input): array {
         global $wpdb;$table=$this->table('carrello');$society=$this->society();
         if(array_keys($input)!==['notes']||!is_string($input['notes'])||mb_strlen($input['notes'])>1000)throw new RuntimeException('Note riga: massimo 1000 caratteri.');
-        $row=$wpdb->get_var($wpdb->prepare("SELECT entry_id FROM $table WHERE user_id=%d AND society_code=%s AND entry_id=%d",$user,$society,$id));
+        $row=$wpdb->get_var($wpdb->prepare("SELECT entry_id FROM $table WHERE society_code=%s AND entry_id=%d",$society,$id));
         if(!$row)throw new RuntimeException('Riga della bozza non disponibile.');
-        $this->checked($wpdb->update($table,['notes'=>sanitize_textarea_field($input['notes'])],['user_id'=>$user,'society_code'=>$society,'entry_id'=>$id]));return $this->cart($user);
+        $this->checked($wpdb->update($table,['notes'=>sanitize_textarea_field($input['notes'])],['society_code'=>$society,'entry_id'=>$id]));return $this->cart($user);
+    }
+    private function draft_key(): string {return 'fr_draft_options_'.hash('sha256',$this->society());}
+    public function draft_options(): array {return get_option($this->draft_key(),['revision'=>0,'options'=>null]);}
+    public function save_draft_options(array $input): array {
+        $key=$this->draft_key();$lock=$key.'_lock';
+        $old=get_option($lock);if($old&&time()-(int)$old>120)delete_option($lock);
+        if(!add_option($lock,time(),'',false))throw new RuntimeException('Bozza in aggiornamento. Riprova.');
+        try{
+            $stored=$this->draft_options();if(($input['revision']??null)!==$stored['revision'])throw new RuntimeException('La bozza è stata salvata da un altro operatore. Ricarica prima di modificarla.');
+            $options=$input['options']??null;
+            if(!is_array($options)||!in_array($options['allocation']??null,['half','first','second'],true)||!is_string($options['notes']??null)||mb_strlen($options['notes'])>2000)throw new RuntimeException('Impostazioni bozza non valide.');
+            $date=$options['date']??'';$parsed=is_string($date)?DateTimeImmutable::createFromFormat('!Y-m-d',$date):false;if(!$parsed||$parsed->format('Y-m-d')!==$date)throw new RuntimeException('Data ricevuta non valida.');
+            $options=array_intersect_key($options,array_flip(['date','notes','allocation','payment_method','payment_methods','line_modes','adjustments']));
+            FR_Refund_Amounts::calculate($this->cart(0)['items'],$options);unset($options['settlement'],$options['payment_totals']);
+            $value=['revision'=>$stored['revision']+1,'options'=>$options];update_option($key,$value,false);if(get_option($key)!==$value)throw new RuntimeException('Salvataggio bozza non riuscito.');return $value;
+        }finally{delete_option($lock);}
     }
     private array $operatorNames=[];
     private function operator_name(int $id):string {if(!isset($this->operatorNames[$id])){$user=(new FR_Repository())->user($id);$this->operatorNames[$id]=$user?($user['display_name']?:$user['username']):'Operatore non disponibile';}return $this->operatorNames[$id];}
@@ -82,6 +105,25 @@ final class FR_Refund_Workflow {
     public function original_pdf(int $id,string $receipt): string {
         foreach($this->document_bundle($id)['documents'] as $doc)if(hash_equals($doc['id'],$receipt))return FR_Refund_Documents::read($doc);
         throw new RuntimeException('Ricevuta non inclusa in questo rimborso.');
+    }
+    public function delete_emission(int $user,int $id,int $revision): array {
+        global $wpdb;$table=$this->table('emissioni');$paid=$this->table('rimborsi');$society=$this->society();
+        $old=get_option('fr_issue_lock');if($old&&time()-(int)$old>120)delete_option('fr_issue_lock');
+        if(!add_option('fr_issue_lock',time(),'',false))throw new RuntimeException('Un rimborso è già in aggiornamento. Riprova.');
+        try{
+            $this->checked($wpdb->query('START TRANSACTION'));
+            try{
+                $raw=$wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id=%d AND society_code=%s FOR UPDATE",$id,$society),ARRAY_A);
+                if(!$raw)throw new RuntimeException('Rimborso non disponibile.');
+                $options=json_decode($raw['options_json'],true);
+                if((int)($options['revision']??0)!==$revision)throw new RuntimeException('Il rimborso è stato modificato. Ricarica la pagina prima di eliminarlo.');
+                $retained=[];
+                foreach($wpdb->get_col($wpdb->prepare("SELECT items_json FROM $table WHERE society_code=%s AND id<>%d",$society,$id)) as $json)foreach(json_decode($json,true) as $row)$retained[(int)$row['id']]=true;
+                foreach(json_decode($raw['items_json'],true) as $row)if(!isset($retained[(int)$row['id']]))$this->checked($wpdb->update($paid,['reimbursed'=>0,'paid_cents'=>null,'updated_at'=>current_time('mysql',true),'updated_by'=>$user],['entry_id'=>(int)$row['id']]));
+                if($wpdb->delete($table,['id'=>$id,'society_code'=>$society])!==1)throw new RuntimeException('Eliminazione non riuscita.');
+                $this->checked($wpdb->query('COMMIT'));return ['success'=>true];
+            }catch(Throwable $e){$wpdb->query('ROLLBACK');throw $e;}
+        }finally{delete_option('fr_issue_lock');}
     }
     public function revise(int $user,int $id,array $input): array {
         global $wpdb;$table=$this->table('emissioni');$paid=$this->table('rimborsi');$society=$this->society();
@@ -113,8 +155,13 @@ final class FR_Refund_Workflow {
                 $total=FR_Refund_Amounts::calculate($rows,$options);$now=current_time('mysql',true);
                 foreach($oldMap as $entryId=>$row)if(!in_array($entryId,$ids,true))$this->checked($wpdb->update($paid,['reimbursed'=>0,'paid_cents'=>null,'updated_at'=>$now,'updated_by'=>$user],['entry_id'=>$entryId]));
                 foreach($rows as &$row){$amount=(int)($row['paid_cents']??$row['price_cents']);$record=['reimbursed'=>1,'paid_cents'=>$amount,'updated_at'=>$now,'updated_by'=>$user];$exists=$wpdb->get_var($wpdb->prepare("SELECT entry_id FROM $paid WHERE entry_id=%d",$row['id']));if($exists)$this->checked($wpdb->update($paid,$record,['entry_id'=>$row['id']]));else $this->checked($wpdb->insert($paid,['entry_id'=>$row['id']]+$record));$row['paid_cents']=$amount;$row['reimbursed']=1;}unset($row);
-                $cart=$this->table('carrello');foreach($ids as $entryId)$this->checked($wpdb->delete($cart,['user_id'=>$user,'society_code'=>$society,'entry_id'=>$entryId]));
-                $this->checked($wpdb->update($table,['items_json'=>wp_json_encode($rows),'options_json'=>wp_json_encode($options),'total_cents'=>$total],['id'=>$id]));$this->checked($wpdb->query('COMMIT'));return $this->emission($id);
+                $cart=$this->table('carrello');foreach($ids as $entryId)$this->checked($wpdb->delete($cart,['society_code'=>$society,'entry_id'=>$entryId]));
+                $this->checked($wpdb->update($table,['items_json'=>wp_json_encode($rows),'options_json'=>wp_json_encode($options),'total_cents'=>$total],['id'=>$id]));$this->checked($wpdb->query('COMMIT'));
+                if(!$wpdb->get_var($wpdb->prepare("SELECT entry_id FROM $cart WHERE society_code=%s LIMIT 1",$society))){
+                    $draftKey=$this->draft_key();$draftLock=$draftKey.'_lock';
+                    if(add_option($draftLock,time(),'',false)){try{$stored=$this->draft_options();update_option($draftKey,['revision'=>$stored['revision']+1,'options'=>null],false);}finally{delete_option($draftLock);}}
+                }
+                return $this->emission($id);
             }catch(Throwable $error){$wpdb->query('ROLLBACK');throw $error;}
         }finally{delete_option('fr_issue_lock');}
     }
@@ -144,9 +191,9 @@ final class FR_Refund_Workflow {
             $options['stamp']=$stamp;
             $this->checked($wpdb->query('START TRANSACTION'));
             try{
-                $cart_ids=array_map('intval',$wpdb->get_col($wpdb->prepare("SELECT entry_id FROM $cart WHERE user_id=%d AND society_code=%s",$user,$society)));
-                if(array_diff($ids,$cart_ids))throw new RuntimeException('La selezione non è più nella tua bozza rimborso. Aggiorna la pagina.');
-                $line_notes=[];foreach($wpdb->get_results($wpdb->prepare("SELECT entry_id,notes FROM $cart WHERE user_id=%d AND society_code=%s",$user,$society),ARRAY_A) as $line)$line_notes[(int)$line['entry_id']]=$line['notes']??'';
+                $cart_ids=array_map('intval',$wpdb->get_col($wpdb->prepare("SELECT entry_id FROM $cart WHERE society_code=%s",$society)));
+                if(array_diff($ids,$cart_ids))throw new RuntimeException('La selezione non è più nella bozza rimborso condivisa. Aggiorna la pagina.');
+                $line_notes=[];foreach($this->cart_records() as $line)$line_notes[(int)$line['entry_id']]=$line['notes']??'';
                 $rows=$this->data->refund_preview($ids)['items'];$options['original_receipts']=FR_Refund_Documents::capture($rows,$society);$total=0;$now=current_time('mysql',true);
                 foreach($rows as &$row){
                     $id=(int)$row['id'];$amount=$row['price_cents'];$row['refund_notes']=$line_notes[$id]??'';
@@ -161,8 +208,13 @@ final class FR_Refund_Workflow {
                 $total=FR_Refund_Amounts::calculate($rows,$options);
                 $this->checked($wpdb->insert($emissions,['user_id'=>$user,'society_code'=>$society,'request_key'=>$key,'created_at'=>$now,'total_cents'=>$total,'items_json'=>wp_json_encode($rows),'options_json'=>wp_json_encode($options)]));
                 $id=(int)$wpdb->insert_id;
-                foreach($ids as $entry_id)$this->checked($wpdb->delete($cart,['user_id'=>$user,'society_code'=>$society,'entry_id'=>$entry_id]));
-                $this->checked($wpdb->query('COMMIT'));return $this->emission($id);
+                foreach($ids as $entry_id)$this->checked($wpdb->delete($cart,['society_code'=>$society,'entry_id'=>$entry_id]));
+                $this->checked($wpdb->query('COMMIT'));
+                if(!$wpdb->get_var($wpdb->prepare("SELECT entry_id FROM $cart WHERE society_code=%s LIMIT 1",$society))){
+                    $draftKey=$this->draft_key();$draftLock=$draftKey.'_lock';
+                    if(add_option($draftLock,time(),'',false)){try{$stored=$this->draft_options();update_option($draftKey,['revision'=>$stored['revision']+1,'options'=>null],false);}finally{delete_option($draftLock);}}
+                }
+                return $this->emission($id);
             }catch(Throwable $error){$wpdb->query('ROLLBACK');throw $error;}
         }finally{delete_option($lock);}
     }

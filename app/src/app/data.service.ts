@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, effect, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { AuthService, errorMessage } from './auth.service';
@@ -61,6 +61,7 @@ export class DataService {
   });
   readonly locked = computed(() => this.loading() || this.busy() || this.syncing());
 
+  private readonly dismissMessages=effect(onCleanup=>{const error=this.error(),notice=this.notice();if(!error&&!notice)return;const timer=setTimeout(()=>{if(this.error()===error)this.error.set('');if(this.notice()===notice)this.notice.set('');},6000);onCleanup(()=>clearTimeout(timer));});
   private draftKey(): string { return 'fr-refund-selection-' + this.auth.user()?.id; }
   setSelection(ids: number[]): void {
     this.selected.set([...new Set(ids)]);

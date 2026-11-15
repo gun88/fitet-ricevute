@@ -33,6 +33,10 @@ for suffix in ('', '-source'):
         names = package.namelist()
         assert 'fitet-ricevute/fitet-ricevute.php' in names
         assert 'fitet-ricevute/includes/committees.php' in names
+        assert 'fitet-ricevute/includes/class-updates.php' in names
+        assert 'fitet-ricevute/includes/plugin-update-checker/plugin-update-checker.php' in names
+        assert 'fitet-ricevute/includes/plugin-update-checker/vendor/Parsedown.php' in names
+        assert 'fitet-ricevute/includes/plugin-update-checker/license.txt' in names
         assert 'fitet-ricevute/assets/admin.css' in names
         assert 'fitet-ricevute/assets/app/index.html' in names
         assert not any('/.runtime/' in name or '/node_modules/' in name or '/.idea/' in name for name in names)

@@ -443,3 +443,19 @@ Select comitati: tests/committees.php verifica 22 ID nella mappa pubblica e rifi
 ### Profilo, password e riepilogo rimborsi
 
 `tests/profile-password.php`: 12 controlli con account temporaneo su password attuale, conferma, lunghezza minima, modifica effettiva, revoca di tutte le sessioni, isolamento degli altri utenti e protezione CSRF. `tests/profile-layout-ui.cjs`: 18 controlli browser su layout gara 40/20/20/20, intestazione compatta, cestino con bordo, aggiunta iscrizione centrata, assenza Annulla, profilo responsive, switch, errori password e ritorno al login con conferma, riepilogo AG Grid/card con ricerca e nome operatore nello storico. `tests/refund-revision.php`: 20 controlli, incluso salvataggio dei nomi operatore. Compilazione e screenshot solo nella copia isolata; assets del sito invariati.
+
+### Bozza persistente, pagato dalla società e usabilità
+
+`draft-settings.php`: 7 verifiche su persistenza, lettura da nuova istanza, conflitto di revisione, quote a zero, beneficiario conservato e backup/ripristino. `draft-settings-ui.cjs`: pannello chiuso, contributo a tutti, reset, scelta pagamento disabilitata a zero, avviso di uscita, salva/rimani/scarta, ripristino, layout mobile, pulsanti dettaglio alla stessa altezza e rimozione del ritorno all’elenco. `paid-export.cjs`: PDF/Excel generati con quota già pagata, zero da consegnare, causale e originale conservati. Regressioni: 9 pagamenti per atleta, 20 revisioni, 9 bozza condivisa, 19 esportazione e 10 rettifiche/esportazione. Compilazione solamente nella copia isolata; assets del sito invariati.
+
+### Eliminazione rimborso
+
+`delete-refund.php`: 9 verifiche su revisione obsoleta, società diversa, cancellazione e storico, riapertura delle quote correnti, iscrizioni storiche ora rimborsate altrove non alterate, dati originali conservati e validità backup. `delete-refund-ui.cjs`: ordine/colore pulsante, apertura senza cancellare, annullamento ed Escape, dialog mobile, una sola chiamata DELETE con revisione, ritorno all’elenco e notifica. Compilazione solamente nella copia isolata; build del sito invariata.
+
+### Modifica torneo personalizzato
+
+`manual-edit.php`: 8 verifiche su precompilazione, identità torneo, metadati/prezzi aggiornati, ID iscrizione e ricevuta conservati, blocco dopo emissione lato lettura e scrittura ed esclusione dei tornei del portale. `manual-edit-ui.cjs`: 7 verifiche su Fonte, dialog informativa, form precompilato, ricevuta esistente valida senza nuovo upload, salvataggio e assenza errori browser. Compilazione solo nella copia isolata; build del sito invariata.
+
+### Updater GitHub
+
+`tests/plugin-updates.php`: 8 verifiche con HTTP interamente simulato su versione locale/manifesto, URL ZIP installabile, lettura JSON, assenza aggiornamento a parità di versione, disponibilità della versione superiore, assenza downgrade, indisponibilità del server e uso dell’endpoint configurato. Sintassi PHP e script di packaging verificati. Nessun aggiornamento installato, nessun ZIP rigenerato e nessuna pubblicazione.

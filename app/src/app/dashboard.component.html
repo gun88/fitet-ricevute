@@ -24,17 +24,12 @@
     </div>
   </header>
   @if(mobileOpen()){<div class="menu-backdrop" aria-hidden="true" (click)="closeMenus(true)"></div>}
-  @if (data.notice() === 'Iscrizioni aggiunte alla bozza rimborso.') {
-    <div class="notice-toast" [attr.inert]="mobileOpen()?'':null">
-      <p role="status" aria-atomic="true">{{data.notice()}}</p>
-      <button type="button" class="notice-toast-close" aria-label="Chiudi notifica" (click)="data.notice.set('')"><fr-icon name="close" /></button>
-    </div>
-  }
+  @if(data.error()||data.notice()){<div class="notice-toast" [class.error-toast]="!!data.error()" [attr.inert]="mobileOpen()?'':null"><p [attr.role]="data.error()?'alert':'status'" aria-atomic="true">{{data.error()||data.notice()}}</p><button type="button" class="notice-toast-close" aria-label="Chiudi notifica" (click)="data.error.set('');data.notice.set('')"><fr-icon name="close" /></button></div>}
   <main class="dashboard-main data-main" [attr.inert]="mobileOpen()?'':null">
-    @if (data.error()) { <p class="error-box" role="alert">{{ data.error() }}</p> }
-    @if (data.notice() && data.notice() !== 'Iscrizioni aggiunte alla bozza rimborso.') { <p class="notice" role="status">{{ data.notice() }}</p> }
+
+
     @if (data.loading()) { <p class="load-note" role="status">Caricamento dei dati…</p> }
     <router-outlet />
   </main>
-  <footer class="dashboard-footer" [attr.inert]="mobileOpen()?'':null">FITET Ricevute · Versione 0.13.0</footer>
+  <footer class="dashboard-footer" [attr.inert]="mobileOpen()?'':null">FITET Ricevute · Versione 1.0.0</footer>
 </div>

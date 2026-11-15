@@ -55,6 +55,10 @@ final class FR_Api {
             },
         ]);
         register_rest_route(self::NS,'/tornei/manuali',['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(function()use($r){$data=json_decode((string)$r->get_param('data'),true);if(!is_array($data))throw new RuntimeException('Dati torneo non validi.');return FR_Manual_Tournament::create($data,$r->get_file_params(),(int)$this->auth->current()['id']);})]);
+        register_rest_route(self::NS,'/tornei/manuali/(?P<key>[a-f0-9]{64})',[
+            ['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>FR_Manual_Tournament::editable($r['key']))],
+            ['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(function()use($r){$data=json_decode((string)$r->get_param('data'),true);if(!is_array($data))throw new RuntimeException('Dati torneo non validi.');return FR_Manual_Tournament::update($r['key'],$data,$r->get_file_params(),(int)$this->auth->current()['id']);})],
+        ]);
         register_rest_route(self::NS,'/tornei/(?P<key>[a-f0-9]{64})/locandina',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>new WP_REST_Response(FR_Manual_Tournament::poster($r['key']),200,['Content-Type'=>'application/pdf','Content-Disposition'=>'inline; filename="locandina.pdf"']))]);
         foreach (['gare', 'iscrizioni'] as $kind) {
             register_rest_route(self::NS, '/' . $kind, [
@@ -99,11 +103,16 @@ final class FR_Api {
             ['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'args'=>$selection_args,'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->cart_change($current_user(),$r['ids'],true))],
             ['methods'=>'DELETE','permission_callback'=>[$this->auth,'permission'],'args'=>$selection_args,'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->cart_change($current_user(),$r['ids'],false))],
         ]);
+        register_rest_route(self::NS,'/carrello/impostazioni',[
+            ['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn()=>$workflow->draft_options()],
+            ['methods'=>'PUT','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->save_draft_options($r->get_json_params()??[]))],
+        ]);
         register_rest_route(self::NS,'/carrello/(?P<entry_id>\d+)',['methods'=>'PATCH','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->update_line($current_user(),(int)$r['entry_id'],$r->get_json_params()??[]))]);
         register_rest_route(self::NS,'/emissioni',[
             ['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'args'=>['page'=>['type'=>'integer','minimum'=>1,'default'=>1]],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->emissions((int)$r['page']))],
             ['methods'=>'POST','permission_callback'=>[$this->auth,'permission'],'args'=>array_merge($selection_args,['request_key'=>['required'=>true,'type'=>'string'],'prices'=>['required'=>true,'type'=>'object'],'options'=>['required'=>true,'type'=>'object']]),'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->issue($current_user(),$r->get_json_params()))],
         ]);
+        register_rest_route(self::NS,'/emissioni/(?P<id>\d+)',['methods'=>'DELETE','permission_callback'=>[$this->auth,'permission'],'args'=>['revision'=>['type'=>'integer','minimum'=>0,'required'=>true]],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->delete_emission($current_user(),(int)$r['id'],(int)$r['revision']))]);
         register_rest_route(self::NS,'/emissioni/(?P<id>\d+)',['methods'=>'PUT','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->revise($current_user(),(int)$r['id'],$r->get_json_params()??[]))]);
         register_rest_route(self::NS,'/emissioni/(?P<id>\d+)',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->emission((int)$r['id']))]);
         register_rest_route(self::NS,'/emissioni/(?P<id>\d+)/ricevute',['methods'=>'GET','permission_callback'=>[$this->auth,'permission'],'callback'=>fn(WP_REST_Request $r)=>$this->attempt(fn()=>$workflow->documents((int)$r['id']))]);

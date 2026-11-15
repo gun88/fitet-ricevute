@@ -408,3 +408,28 @@ fr-icon svg { stroke-width:2!important; stroke-linecap:round; stroke-linejoin:ro
 .profile-settings { grid-column:1; }.profile-password { grid-column:2; grid-row:1 / span 2; }.profile-password > p { margin-bottom:18px!important; }.profile-password button { justify-self:start; }
 @media(max-width:1100px){ .manual-race-fields { grid-template-columns:1fr 1fr; }.profile-layout { grid-template-columns:1fr; }.profile-settings,.profile-password { grid-column:auto; grid-row:auto; } }
 @media(max-width:520px){ .manual-race-fields { grid-template-columns:1fr; }.profile-section { padding:18px; } }
+
+.print-controls > a,.print-controls > button { display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:44px;min-height:44px;padding:10px 18px;line-height:20px;margin:0; }
+.adjustment-panel { border:0;margin:0; }.contribution-controls,.adjustment-add { border-top:1px solid #dfe7dc;padding-top:20px;margin-top:8px; }.contribution-actions { display:flex;flex-wrap:wrap;gap:12px;margin-top:16px; }.contribution-controls .grid-help { margin-top:12px; }
+.draft-dialog-backdrop { position:fixed;inset:0;background:#152c2580;z-index:150;display:grid;place-items:center;padding:20px; }.draft-dialog { width:min(560px,100%);padding:24px;background:white;border-radius:12px;box-shadow:0 10px 50px #0003; }.draft-dialog h2 { margin-top:0; }.notice-toast.error-toast { color:#8c2525;border-color:#e8baba;background:#fff2f2; }
+
+/* Keep refund controls aligned without changing the stacked mobile layout. */
+.quota-mode-row > span { display:block;min-width:0;overflow-wrap:anywhere; }
+.issue-footer-actions { display:flex;gap:12px;align-items:center;margin-left:auto; }
+.issue-footer-actions > button { display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;height:44px;min-height:44px;margin:0;padding:10px 18px;line-height:20px; }
+@media(min-width:1101px){
+ .adjustment-panel { grid-template-columns:fit-content(50%) minmax(0,1fr); }
+ .adjustment-panel .quota-mode-row { display:grid;grid-template-columns:subgrid;column-gap:16px;align-items:center;min-width:0; }
+ .adjustment-panel .quota-mode-row select { margin-top:0; }
+ .contribution-row { display:flex;align-items:center;gap:16px; }
+ .contribution-row > label { display:flex;flex:1;align-items:center;gap:16px;min-width:0; }
+ .contribution-row > label > span { flex-shrink:0;white-space:nowrap; }
+ .contribution-row > label > input { flex:1;width:0;min-width:80px;margin:0; }
+ .contribution-row > .contribution-actions { flex-shrink:0;flex-wrap:nowrap;margin:0; }
+ .contribution-row button { white-space:nowrap;min-height:44px; }
+}
+@media(max-width:720px){ .issue-footer-actions { margin-left:0;flex-direction:column;align-items:stretch; }.issue-footer-actions > button { width:100%; } }
+
+.secondary-button.danger-button { background:#fff;color:#a52a2a;border:1px solid #d6aaaa; }.secondary-button.danger-button:hover:not(:disabled) { background:#fff2f2;border-color:#a52a2a; }
+
+.source-edit-link { margin-left:12px;color:var(--green);text-decoration:underline; }

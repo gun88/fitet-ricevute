@@ -4,7 +4,14 @@ app/dist/
 .npm-cache/
 .composer-cache/
 vendor/
-release/
+release/*
+!release/plugin.json
+!release/fitet-ricevute-[0-9]*.zip
+release/*-source.zip
 tests/.runtime/
 tests/screenshots/
 .idea
+
+# Vendored updater dependencies are shipped with the plugin.
+!includes/plugin-update-checker/vendor/
+!includes/plugin-update-checker/vendor/**

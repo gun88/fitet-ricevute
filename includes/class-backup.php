@@ -15,7 +15,7 @@ final class FR_Backup {
         return $schemas;
     }
     public static function export(): array {
-        global $wpdb;$data=['format'=>'fitet-ricevute-backup','version'=>1,'plugin_version'=>FITET_RICEVUTE_VERSION,'created_at'=>gmdate(DATE_ATOM),'tables'=>[],'users'=>[],'settings'=>FR_Settings::all(),'images'=>['signature'=>FR_Signature::snapshot(),'stamp'=>FR_Signature::snapshot('stamp')],'last_sync'=>[],'pdfs'=>[],'missing_pdfs'=>[]];
+        global $wpdb;$data=['format'=>'fitet-ricevute-backup','version'=>1,'plugin_version'=>FITET_RICEVUTE_VERSION,'created_at'=>gmdate(DATE_ATOM),'tables'=>[],'users'=>[],'settings'=>FR_Settings::all(),'images'=>['signature'=>FR_Signature::snapshot(),'stamp'=>FR_Signature::snapshot('stamp')],'last_sync'=>[],'draft_options'=>[],'pdfs'=>[],'missing_pdfs'=>[]];
         self::check($wpdb->query('START TRANSACTION'));
         try{
             foreach(self::TABLES as $name){$table=self::table($name);$data['tables'][$name]=$wpdb->get_results("SELECT * FROM $table",ARRAY_A);if($wpdb->last_error)throw new RuntimeException('Lettura dati non riuscita.');}
@@ -23,6 +23,7 @@ final class FR_Backup {
         }catch(Throwable $error){$wpdb->query('ROLLBACK');throw $error;}
         $keys=$wpdb->get_col("SELECT option_name FROM $wpdb->options WHERE option_name LIKE 'fr_last_sync_%'");
         foreach($keys as $key)if(preg_match('/^fr_last_sync_[a-f0-9]{64}$/D',$key))$data['last_sync'][$key]=get_option($key);
+        foreach($wpdb->get_col("SELECT option_name FROM $wpdb->options WHERE option_name LIKE 'fr_draft_options_%'") as $key)if(preg_match('/^fr_draft_options_[a-f0-9]{64}$/D',$key))$data['draft_options'][$key]=get_option($key);
         $uploads=wp_upload_dir();$directory=$uploads['basedir'].'/fitet-ricevute/ricevute-pdf';
         $names=array_unique(array_filter(array_column($data['tables']['gare'],'pdf_file')));
         if(is_dir($directory))foreach(scandir($directory) as $name)if(self::filename($name))$names[]=$name;
@@ -54,7 +55,7 @@ final class FR_Backup {
     }
     private static function json(string $value): array {try{$data=json_decode($value,true,64,JSON_THROW_ON_ERROR);}catch(Throwable $e){throw new RuntimeException('Campo JSON del backup non valido.');}if(!is_array($data))throw new RuntimeException('Dati strutturati del backup non validi.');return $data;}
     public static function validate(array $data): void {
-        if(($data['format']??'')!=='fitet-ricevute-backup'||($data['version']??0)!==1||!is_array($data['tables']??null)||array_diff(array_keys($data),['format','version','plugin_version','created_at','tables','users','settings','images','last_sync','pdfs','missing_pdfs']))throw new RuntimeException('Formato/versione del backup non supportati.');
+        if(($data['format']??'')!=='fitet-ricevute-backup'||($data['version']??0)!==1||!is_array($data['tables']??null)||array_diff(array_keys($data),['format','version','plugin_version','created_at','tables','users','settings','images','last_sync','draft_options','pdfs','missing_pdfs']))throw new RuntimeException('Formato/versione del backup non supportati.');
         if(array_diff(array_keys($data['tables']),self::TABLES)||array_diff(self::TABLES,array_keys($data['tables'])))throw new RuntimeException('Tabelle del backup incomplete o non consentite.');
         if(!is_array($data['settings']??null)||array_diff(array_keys($data['settings']),array_keys(FR_Settings::defaults())))throw new RuntimeException('Impostazioni backup non consentite.');
         foreach($data['settings'] as $value)if(!is_scalar($value))throw new RuntimeException('Impostazioni backup non valide.');
@@ -105,6 +106,8 @@ final class FR_Backup {
         if(!is_array($data['images']??null)||array_diff(array_keys($data['images']),['signature','stamp']))throw new RuntimeException('Immagini backup non valide.');
         foreach(['signature','stamp'] as $kind)FR_Signature::validate_snapshot($data['images'][$kind]??null);
         if(!is_array($data['pdfs']??null)||!is_array($data['last_sync']??null))throw new RuntimeException('File o date backup non validi.');
+        if(!is_array($data['draft_options']??[]))throw new RuntimeException('Impostazioni bozza non valide.');
+        foreach($data['draft_options']??[] as $key=>$value)if(!preg_match('/^fr_draft_options_[a-f0-9]{64}$/D',$key)||!is_array($value)||!is_int($value['revision']??null)||$value['revision']<0||(!array_key_exists('options',$value)||($value['options']!==null&&!is_array($value['options'])))||strlen(wp_json_encode($value))>1000000)throw new RuntimeException('Impostazioni bozza non valide.');
         foreach($data['last_sync'] as $key=>$value)if(!preg_match('/^fr_last_sync_[a-f0-9]{64}$/D',$key)||!is_string($value)||!preg_match('/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}Z| \d{2}:\d{2}:\d{2})$/D',$value))throw new RuntimeException('Data di sincronizzazione nel backup non valida.');
         $size=0;
         foreach($data['pdfs'] as $name=>$file){
@@ -137,6 +140,8 @@ final class FR_Backup {
                 $settings=FR_Settings::sanitize($data['settings']);update_option(FR_Settings::OPTION,$settings,false);if(FR_Settings::all()!==$settings)throw new RuntimeException('Ripristino impostazioni non riuscito.');
                 FR_Signature::replace(FR_Signature::validate_snapshot($data['images']['signature']??null));FR_Signature::replace(FR_Signature::validate_snapshot($data['images']['stamp']??null),'stamp');
                 $keys=$wpdb->get_col("SELECT option_name FROM $wpdb->options WHERE option_name LIKE 'fr_last_sync_%'");foreach($keys as $key)if(preg_match('/^fr_last_sync_[a-f0-9]{64}$/D',$key)){delete_option($key);$option_keys[]=$key;}
+                foreach($wpdb->get_col("SELECT option_name FROM $wpdb->options WHERE option_name LIKE 'fr_draft_options_%'") as $key)if(preg_match('/^fr_draft_options_[a-f0-9]{64}$/D',$key)){delete_option($key);$option_keys[]=$key;}
+                foreach($data['draft_options']??[] as $key=>$value){update_option($key,$value,false);$option_keys[]=$key;}
                 foreach($data['last_sync'] as $key=>$value){update_option($key,$value,false);$option_keys[]=$key;if(get_option($key)!==$value)throw new RuntimeException('Ripristino data non riuscito.');}
                 update_option('fitet_ricevute_data_generation',bin2hex(random_bytes(16)),false);
                 $sessions=FR_Repository::sessions_table();self::check($wpdb->query("DELETE FROM $sessions"));
