@@ -53,6 +53,16 @@ final class FR_Development_Reset {
             }
             $remaining = 0;
             foreach ($files as $file) if (!unlink($file)) $remaining++;
+            // ALTER TABLE causes an implicit commit in MySQL: run it only after
+            // the data transaction has committed, while the reset lock is held.
+            $emissions = $wpdb->prefix . 'fitet_ricevute_emissioni';
+            $count = $wpdb->get_var("SELECT COUNT(*) FROM `$emissions`");
+            if ($count === null || (int) $count !== 0) {
+                throw new RuntimeException('Dati azzerati, ma numerazione non ripristinata: impossibile confermare che la tabella rimborsi sia vuota.');
+            }
+            if ($wpdb->query("ALTER TABLE `$emissions` AUTO_INCREMENT = 1") === false) {
+                throw new RuntimeException('Dati azzerati, ma numerazione non ripristinata: il database non ha consentito il reset del contatore dei rimborsi.');
+            }
             return $remaining;
         } finally { delete_option($lock); }
     }

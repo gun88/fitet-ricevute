@@ -1,16 +1,16 @@
 {
   "name": "FITET Ricevute",
-  "version": "1.0.0",
-  "download_url": "https://raw.githubusercontent.com/gun88/fitet-ricevute/refs/heads/main/release/fitet-ricevute-1.0.0.zip",
+  "version": "1.0.1",
+  "download_url": "https://raw.githubusercontent.com/gun88/fitet-ricevute/refs/heads/main/release/fitet-ricevute-1.0.1.zip",
   "homepage": "https://github.com/gun88/fitet-ricevute/",
   "requires": "6.5",
   "requires_php": "8.1",
   "author": "tpomante",
   "author_homepage": "https://github.com/gun88/",
-  "upgrade_notice": "Versione 1.0.0: gestione ricevute FITeT, tornei, iscrizioni e rimborsi.",
+  "upgrade_notice": "Il reset dei dati di sviluppo ripristina anche la numerazione dei rimborsi da 1.",
   "sections": {
     "description": "Gestione ricevute FITeT, tornei, iscrizioni, prezzi e rimborsi con frontend Angular.",
-    "changelog": "<h4>1.0.0</h4><p>Prima versione stabile.</p>"
+    "changelog": "<h4>1.0.1</h4><p>Il reset dei dati di sviluppo ripristina il contatore dei rimborsi dopo lo svuotamento verificato della tabella.</p><h4>1.0.0</h4><p>Prima versione stabile.</p>"
   },
-  "last_updated": "2026-11-15 13:44:02"
+  "last_updated": "2026-11-15 17:02:55"
 }

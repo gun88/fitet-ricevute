@@ -459,3 +459,7 @@ Select comitati: tests/committees.php verifica 22 ID nella mappa pubblica e rifi
 ### Updater GitHub
 
 `tests/plugin-updates.php`: 8 verifiche con HTTP interamente simulato su versione locale/manifesto, URL ZIP installabile, lettura JSON, assenza aggiornamento a parità di versione, disponibilità della versione superiore, assenza downgrade, indisponibilità del server e uso dell’endpoint configurato. Sintassi PHP e script di packaging verificati. Nessun aggiornamento installato, nessun ZIP rigenerato e nessuna pubblicazione.
+
+### Numerazione dopo reset di sviluppo
+
+`tests/development-reset.php`: 28 controlli superati, incluso inserimento iniziale con ID elevato e successivo inserimento dopo reset con ID esattamente 1. Verificati dati vuoti, configurazioni/account/firma/timbro/credenziali conservati, autorizzazioni, blocchi e file estranei conservati. Eseguito solo sulla copia isolata con dati ripristinati al termine; nessun reset del sito reale.

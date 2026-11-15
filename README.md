@@ -1,6 +1,6 @@
 # FITET Ricevute
 
-Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **1.0.0**.
+Plugin WordPress con frontend Angular su `/fitet-ricevute/`. Versione **1.0.1**.
 
 ## Pagine del portale
 
@@ -280,7 +280,7 @@ Nel profilo ogni utente sceglie altezza automatica (on/off) e spaziatura Standar
 
 ## Reset di sviluppo 0.12.2
 
-In Configurazione, solo per amministratori e quando sia l’URL configurato del sito sia l’host richiesto sono localhost/127.0.0.1/::1, è disponibile “Azzera dati di sviluppo”. Richiede conferma esplicita e nonce WordPress. Cancella le sei tabelle dei dati (inclusi prezzi manuali, bozze ed emissioni), PDF nella sola cartella ricevute-pdf e stato/data di sincronizzazione. Conserva configurazioni, credenziali, firma/timbro, account e preferenze personali. Revoca le sessioni del portale: è necessario un nuovo accesso. Il reset è bloccato durante un ripristino o un passo attivo della sincronizzazione. Eventuali errori di rimozione PDF vengono segnalati; nessuna cancellazione ricorsiva delle cartelle uploads.
+In Configurazione, solo per amministratori e quando sia l’URL configurato del sito sia l’host richiesto sono localhost/127.0.0.1/::1, è disponibile “Azzera dati di sviluppo”. Richiede conferma esplicita e nonce WordPress. Cancella le sei tabelle dei dati (inclusi prezzi manuali, bozze ed emissioni), PDF nella sola cartella ricevute-pdf e stato/data di sincronizzazione. Conserva configurazioni, credenziali, firma/timbro, account e preferenze personali. Revoca le sessioni del portale: è necessario un nuovo accesso. Il reset è bloccato durante un ripristino o un passo attivo della sincronizzazione. Eventuali errori di rimozione PDF vengono segnalati; nessuna cancellazione ricorsiva delle cartelle uploads. Dopo il commit dello svuotamento e la pulizia, il reset verifica che emissioni sia vuota e riporta a 1 il suo AUTO_INCREMENT. Il comando ALTER TABLE resta fuori dalla transazione per evitare commit impliciti anticipati; il blocco del reset resta attivo fino al termine. Un errore di ripristino della numerazione viene segnalato esplicitamente come successivo alla cancellazione già completata.
 
 ## Messaggi e bozza 0.12.3
 

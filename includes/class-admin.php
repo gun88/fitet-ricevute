@@ -118,7 +118,7 @@ final class FR_Admin {
 <h2>Import/export dati</h2><p><a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fitet-ricevute-backup')); ?>">Importa / esporta dati</a></p>
             <?php if (FR_Development_Reset::available()): ?>
             <h2>Strumenti di sviluppo</h2>
-            <?php if (isset($_GET['development_reset'])): ?><div class="notice notice-success"><p>Dati azzerati. Configurazioni e account conservati. Accedi nuovamente al portale.</p></div><?php endif; ?>
+            <?php if (isset($_GET['development_reset'])): ?><div class="notice notice-success"><p>Dati azzerati. La numerazione dei rimborsi riparte da 1. Configurazioni e account conservati. Accedi nuovamente al portale.</p></div><?php endif; ?>
             <?php if (!empty($_GET['remaining_pdfs'])): ?><div class="notice notice-warning"><p>Alcuni PDF non sono stati eliminati: verifica i permessi della cartella ricevute-pdf.</p></div><?php endif; ?>
             <p>Elimina tornei, gare, iscrizioni, prezzi, bozze, rimborsi e PDF originali. Conserva impostazioni, credenziali, firma, timbro, account e preferenze personali. Gli utenti del portale dovranno accedere nuovamente.</p>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">

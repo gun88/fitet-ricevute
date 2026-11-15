@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FITET Ricevute
  * Description: Ricevute FITeT, dati dei tornei e degli iscritti, prezzi e rimborsi.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: tpomante
@@ -13,7 +13,7 @@
 
 defined('ABSPATH') || exit;
 
-define('FITET_RICEVUTE_VERSION', '1.0.0');
+define('FITET_RICEVUTE_VERSION', '1.0.1');
 define('FITET_RICEVUTE_DIR', plugin_dir_path(__FILE__));
 define('FITET_RICEVUTE_URL', plugin_dir_url(__FILE__));
 

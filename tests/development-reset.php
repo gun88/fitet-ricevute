@@ -10,6 +10,10 @@ $settings=FR_Settings::all();$users=(new FR_Repository())->users();
 $preserved=[];foreach([FR_Signature::OPTION,FR_Signature::STAMP_OPTION,'fitet_ricevute_extranet_credentials','fr_grid_preferences_1'] as $key)$preserved[$key]=get_option($key);
 $directory=wp_upload_dir()['basedir'].'/fitet-ricevute/ricevute-pdf';wp_mkdir_p($directory);$sentinel=$directory.'/reset-test.txt';file_put_contents($sentinel,'keep');
 try{
+ $emissions=$wpdb->prefix.'fitet_ricevute_emissioni';
+ $record=['user_id'=>(int)$users[0]['id'],'society_code'=>ltrim((string)$settings['society_code'],'0')?:'0','request_key'=>bin2hex(random_bytes(16)),'created_at'=>current_time('mysql',true),'total_cents'=>0,'items_json'=>'[]','options_json'=>'{}'];
+ $seed=max(100000,(int)$wpdb->get_var("SELECT MAX(id) FROM $emissions")+1);
+ rc($wpdb->insert($emissions,['id'=>$seed]+$record)!==false,'seed high refund ID');
  rc(FR_Development_Reset::available(),'localhost available');
  $_SERVER['HTTP_HOST']='example.org';rc(!FR_Development_Reset::available(),'external host blocked');denied(fn()=>FR_Development_Reset::run(),'external invocation refused');
  $_SERVER['HTTP_HOST']='127.0.0.1:8095';
@@ -20,6 +24,9 @@ try{
  set_transient('fr_sync_'.str_repeat('a',32),['test'=>true],600);update_option('fr_last_sync_'.str_repeat('a',64),'test');$generation=get_option('fitet_ricevute_data_generation');
  rc(FR_Development_Reset::run()===0,'reset succeeds');
  foreach(FR_Backup::TABLES as $name)rc((int)$wpdb->get_var('SELECT COUNT(*) FROM '.$wpdb->prefix.'fitet_ricevute_'.$name)===0,'empty table '.$name);
+ rc($wpdb->insert($emissions,$record)!==false,'first refund insert after reset succeeds');
+ rc((int)$wpdb->insert_id===1,'refund numbering restarts from 1');
+ $wpdb->delete($emissions,['id'=>1]);
  rc(FR_Settings::all()===$settings,'settings unchanged');rc((new FR_Repository())->users()===$users,'accounts unchanged');
  foreach($preserved as $key=>$value)rc(get_option($key)===$value,'preserved '.$key);
  rc(!get_transient('fr_sync_'.str_repeat('a',32))&&!get_option('fr_last_sync_'.str_repeat('a',64)),'sync state cleared');
