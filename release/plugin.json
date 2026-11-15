@@ -1,7 +1,7 @@
 {
   "name": "FITET Ricevute",
   "version": "1.0.1",
-  "download_url": "https://raw.githubusercontent.com/gun88/fitet-ricevute/refs/heads/main/release/fitet-ricevute-1.0.1.zip",
+  "download_url": "https://github.com/gun88/fitet-ricevute/releases/download/1.0.1/fitet-ricevute-1.0.1.zip",
   "homepage": "https://github.com/gun88/fitet-ricevute/",
   "requires": "6.5",
   "requires_php": "8.1",
